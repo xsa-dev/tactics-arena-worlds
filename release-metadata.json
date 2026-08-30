@@ -1,0 +1,23 @@
+{
+  "manifestVersion": 1,
+  "analyticsSchemaVersion": 2,
+  "freezeIds": {
+    "scenarioFreezeId": "wasteland-8x6-v1",
+    "onboardingFreezeId": "six-step-abilities-v2",
+    "replayFreezeId": "play-again-v1"
+  },
+  "profiles": {
+    "study-draft": {
+      "adPolicy": "disabled_for_study",
+      "publicationEligible": false
+    },
+    "catalog-release": {
+      "adPolicy": "post_battle_fullscreen",
+      "publicationEligible": true
+    }
+  },
+  "languages": ["en", "ru"],
+  "platforms": ["desktop", "mobile"],
+  "orientation": "landscape",
+  "savePolicy": "preferences_only_no_progression"
+}

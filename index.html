@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#151a1d" />
+    <title>Tactics Arena: Wasteland</title>
+  </head>
+  <body>
+    <main id="game-shell" data-testid="game-shell">
+      <div id="game"></div>
+      <section id="hud" aria-live="polite">
+        <div id="selected-status"></div>
+        <div id="feedback"></div>
+      </section>
+      <nav
+        id="game-controls"
+        data-testid="game-controls"
+        aria-label="Battle actions"
+      >
+        <button data-testid="move-action" id="move-action"></button>
+        <button data-testid="attack-action" id="attack-action"></button>
+        <button data-testid="ability-action" id="ability-action"></button>
+        <button data-testid="end-turn" id="end-turn"></button>
+        <button data-testid="rules" id="rules" class="icon-button">?</button>
+      </nav>
+      <section id="onboarding" class="modal" aria-modal="true" role="dialog">
+        <div class="panel">
+          <h1 id="onboarding-title"></h1>
+          <ol id="onboarding-list"></ol>
+          <button
+            data-testid="onboarding-dismiss"
+            id="onboarding-dismiss"
+          ></button>
+        </div>
+      </section>
+      <section
+        id="result-overlay"
+        data-testid="result-overlay"
+        class="modal hidden"
+        aria-modal="true"
+        role="dialog"
+      >
+        <div class="panel result-panel">
+          <h1 id="result-title"></h1>
+          <p id="result-stats"></p>
+          <button data-testid="replay" id="replay"></button>
+          <button data-testid="export" id="export"></button>
+        </div>
+      </section>
+      <section
+        id="rotate-overlay"
+        data-testid="rotate-overlay"
+        class="modal rotate hidden"
+        aria-live="assertive"
+      >
+        <div class="rotate-icon">↻</div>
+        <h1 id="rotate-title"></h1>
+        <p id="rotate-body"></p>
+      </section>
+      <section id="startup-error" class="modal hidden" role="alert">
+        <div class="panel result-panel">
+          <h1 id="startup-error-title">Startup error</h1>
+          <p id="startup-error-body"></p>
+          <button
+            id="startup-error-retry"
+            type="button"
+            onclick="location.reload()"
+          >
+            Retry
+          </button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
