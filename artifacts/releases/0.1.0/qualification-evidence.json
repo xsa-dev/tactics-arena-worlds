@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c497672b92268d7f56185d4c3a5a08c059bdc0b2",
+  "profile": "study-draft",
+  "gates": [
+    {
+      "id": "dependency-install",
+      "command": [
+        "npm",
+        "ci"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "format-check",
+      "command": [
+        "npm",
+        "run",
+        "format:check"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "unit-contract-tests",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "browser-tests",
+      "command": [
+        "npm",
+        "run",
+        "test:browser"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "production-build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "packaged-artifact-smoke",
+      "command": [
+        "npm",
+        "run",
+        "test:release-artifact"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "security-audit",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "openspec-validate-tactical-battle-prototype",
+      "command": [
+        "openspec",
+        "validate",
+        "validate-tactical-battle-prototype",
+        "--strict"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "openspec-prepare-yandex-games-release",
+      "command": [
+        "openspec",
+        "validate",
+        "prepare-yandex-games-release",
+        "--strict"
+      ],
+      "status": "passed"
+    }
+  ]
+}

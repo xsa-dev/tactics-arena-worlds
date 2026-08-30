@@ -1,0 +1,47 @@
+{
+  "manifestVersion": 1,
+  "version": "0.1.0",
+  "profile": "study-draft",
+  "sourceCommit": "c497672b92268d7f56185d4c3a5a08c059bdc0b2",
+  "buildTime": "2026-08-30T22:45:18.000Z",
+  "nodeVersion": "v22.22.3",
+  "npmVersion": "10.9.8",
+  "scenarioFreezeId": "wasteland-8x6-v1",
+  "onboardingFreezeId": "six-step-abilities-v2",
+  "replayFreezeId": "play-again-v1",
+  "analyticsSchemaVersion": 2,
+  "adPolicy": "disabled_for_study",
+  "publicationEligible": false,
+  "sdkEnabled": true,
+  "languages": [
+    "en",
+    "ru"
+  ],
+  "platforms": [
+    "desktop",
+    "mobile"
+  ],
+  "orientation": "landscape",
+  "savePolicy": "preferences_only_no_progression",
+  "archive": {
+    "compressedBytes": 347032,
+    "uncompressedBytes": 1258283
+  },
+  "evidence": [
+    {
+      "id": "tdd-red-green",
+      "path": "artifacts/tdd-evidence.md",
+      "sha256": "ae25a6125c2b0c6801e0e18b3b865b4f13840b89cc8672e27b7ad830e6a30e92"
+    },
+    {
+      "id": "scoped-openspec-tasks",
+      "path": "openspec/changes/prepare-yandex-games-release/tasks.md",
+      "sha256": "d72f08e5a82dd66f892c786bd8df01aac7729f21b98f4a06c532a7f2e6cd7c27"
+    },
+    {
+      "id": "qualification-gates",
+      "path": "qualification-evidence.json",
+      "sha256": "7cac0e507aa1f8027e8fcc458f56df4cb314e5b2c3753721dff0bebfe7396f50"
+    }
+  ]
+}
