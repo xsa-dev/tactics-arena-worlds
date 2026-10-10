@@ -1,4 +1,5 @@
 import { dispatch } from "../core/engine";
+import { decisionStateFingerprint, enumerateLegalSurvivorCommands } from "../core/survivor-autoplay";
 import { reachableCells } from "../core/grid";
 import type {
   BattleCommand,
@@ -22,8 +23,33 @@ import {
 } from "../platform/readiness";
 import { GameplayCoordinator } from "../platform/gameplay-coordinator";
 import { ReleasePreferences } from "../release/persistence";
+import type { BootstrapDependencies } from "../bootstrap";
+import { OpenJevSurvivorPolicy, openJevConfig } from "../survivor/openjev-client";
+import { ResilientSurvivorPolicy, DeterministicSurvivorPolicy } from "../survivor/resilient-policy";
+import type { SurvivorControlMode, SurvivorPolicy, SurvivorPolicyConfig } from "../survivor/policy";
 
 export type ActionMode = "move" | "attack" | "ability";
+export type AutoplaySpeed = 1 | 2 | 4;
+
+export interface GameRuntimeOptions {
+  survivor?: Partial<SurvivorPolicyConfig> & { policy?: SurvivorPolicy };
+  autoplaySpeed?: AutoplaySpeed;
+}
+
+export class PresentationClock {
+  private speed: AutoplaySpeed;
+  constructor(speed: AutoplaySpeed = 1) { this.speed = speed; }
+  get multiplier(): AutoplaySpeed { return this.speed; }
+  set multiplier(value: AutoplaySpeed) { this.speed = value; }
+  duration(baseMs: number): number { return Math.max(1, Math.round(baseMs / this.speed)); }
+  setSpeed(value: AutoplaySpeed): void { this.speed = value; }
+}
+
+const defaultSurvivorConfig: SurvivorPolicyConfig = {
+  mode: "human", proxyUrl: "/v1/openjev/choose", timeoutMs: 5_000, maxActionsPerPhase: 12,
+};
+
+const deterministicCandidate = (candidates: readonly { id: string; command: BattleCommand }[]) => candidates.find(({ command }) => command.type === "end-player-phase") ?? candidates[0];
 
 export class GameRuntime {
   readonly observations: ObservationRegistry;
@@ -42,13 +68,30 @@ export class GameRuntime {
   private readonly listeners = new Set<() => void>();
   private rulesOpen = false;
   private readonly preferences = new ReleasePreferences(localStorage);
+  private readonly survivorMode: SurvivorControlMode;
+  private readonly survivorPolicy: SurvivorPolicy;
+  private readonly maxActionsPerPhase: number;
+  readonly presentationClock: PresentationClock;
+  private autoplayEpoch = 0;
+  private autoplayController: AbortController | null = null;
+  private autoplayInFlight = false;
+  private autoplayDecisions = 0;
+  private nextAutoplayAt = 0;
 
   constructor(
     public readonly platform: PlatformService,
     public readonly language: Language,
     context: AnalyticsContext,
+    _dependencies?: BootstrapDependencies,
+    options: GameRuntimeOptions = {},
   ) {
     this.observations = new ObservationRegistry(platform, context);
+    const survivor = { ...defaultSurvivorConfig, ...options.survivor, mode: _dependencies?.controlMode ?? options.survivor?.mode ?? defaultSurvivorConfig.mode };
+    this.survivorMode = survivor.mode;
+    this.maxActionsPerPhase = Math.max(1, Math.floor(survivor.maxActionsPerPhase));
+    this.presentationClock = new PresentationClock(options.autoplaySpeed ?? 1);
+    const primary = _dependencies?.survivorPolicy ?? survivor.policy ?? (survivor.mode === "openjev" ? new OpenJevSurvivorPolicy(openJevConfig(survivor)) : null);
+    this.survivorPolicy = new ResilientSurvivorPolicy(primary, new DeterministicSurvivorPolicy());
     this.lifecycle = this.newLifecycle();
     this.displayState = structuredClone(this.session.state);
     this.onboardingOpen = !this.preferences.isOnboardingDismissed();
@@ -93,21 +136,18 @@ export class GameRuntime {
     this.listeners.forEach((listener) => listener());
   }
   get inputEnabled(): boolean {
-    return (
-      this.readiness.isInteractive &&
-      this.session.observationState === "active" &&
-      this.lifecycle.inputEnabled &&
-      !this.locked &&
-      !this.onboardingOpen &&
-      !this.portrait &&
-      this.session.state.status === "active"
-    );
+    return this.readiness.isInteractive && this.session.observationState === "active" && this.lifecycle.inputEnabled && !this.locked && !this.onboardingOpen && !this.portrait && this.session.state.status === "active" && !(this.autoplayActive && this.session.state.phase === "player");
+  }
+  get autoplayActive(): boolean { return this.survivorMode === "openjev"; }
+  get presentationIdle(): boolean {
+    return this.lifecycle.pendingCount === 0 && !this.locked && !this.pendingFinal && !this.lifecycle.isPaused && !this.onboardingOpen && !this.portrait && this.session.state.status === "active" && this.session.state.phase === "player" && decisionStateFingerprint(this.displayState) === decisionStateFingerprint(this.session.state);
   }
   get selected(): Unit | undefined {
     return this.displayState.units.find(({ id }) => id === this.selectedId);
   }
 
   setPortrait(value: boolean): void {
+    this.cancelAutoplay();
     this.portrait = value;
     this.lifecycle.setPaused("portrait", value);
     this.gameplay.setBlocker("portrait", value);
@@ -124,6 +164,7 @@ export class GameRuntime {
   }
 
   setLifecycleBlocker(source: "focus" | "visibility", blocked: boolean): void {
+    if (blocked) this.cancelAutoplay();
     this.lifecycle.setPaused(source, blocked);
     this.gameplay.setBlocker(source, blocked);
   }
@@ -210,6 +251,11 @@ export class GameRuntime {
       this.notify();
       return;
     }
+    if (result.accepted) {
+      this.cancelAutoplay();
+      this.autoplayDecisions += 1;
+      this.nextAutoplayAt = 0;
+    }
     if (command.type === "end-player-phase") {
       this.displayState = before;
       this.pendingFinal = structuredClone(result.state);
@@ -226,45 +272,73 @@ export class GameRuntime {
     this.notify();
   }
 
+  private cancelAutoplay(): void {
+    this.autoplayEpoch += 1;
+    this.autoplayController?.abort();
+    this.autoplayController = null;
+    this.autoplayInFlight = false;
+  }
+
+  private maybeAutoplay(time: number): void {
+    if (!this.autoplayActive || !this.presentationIdle || this.autoplayInFlight || time < this.nextAutoplayAt) return;
+    const decisionSet = enumerateLegalSurvivorCommands(this.session.state);
+    if (!decisionSet.candidates.length) return;
+    const epoch = this.autoplayEpoch;
+    const controller = new AbortController();
+    this.autoplayController = controller;
+    this.autoplayInFlight = true;
+    const candidates = decisionSet.candidates.map(({ id, command, summary }) => ({
+      id,
+      command,
+      kind: summary.kind,
+      ...(summary.unitId ? { actorId: summary.unitId } : {}),
+      ...(summary.targetId ? { targetId: summary.targetId } : {}),
+      ...(summary.to ? { to: summary.to } : {}),
+    }));
+    void this.survivorPolicy.choose(this.session.state, candidates, controller.signal).then((decision) => {
+      if (epoch !== this.autoplayEpoch || controller.signal.aborted || !this.presentationIdle) return;
+      const current = enumerateLegalSurvivorCommands(this.session.state);
+      if (current.fingerprint !== decisionSet.fingerprint) return;
+    const candidate = this.autoplayDecisions >= this.maxActionsPerPhase
+      ? deterministicCandidate(current.candidates)
+      : current.candidates.find(({ id }) => id === decision.candidateId) ?? deterministicCandidate(current.candidates);
+      if (candidate) this.resolve(candidate.command);
+    }).catch(() => undefined).finally(() => {
+      if (epoch === this.autoplayEpoch) {
+        this.autoplayInFlight = false;
+        this.autoplayController = null;
+        this.nextAutoplayAt = time + this.presentationClock.duration(220);
+        this.notify();
+      }
+    });
+  }
   private describeEvents(events: readonly BattleEvent[]): string {
     if (events.some(({ type }) => type === "unit-defeated"))
       return t(this.language, "feedback.defeated");
-    if (
-      events.some(
-        (event) => event.type === "unit-damaged" && event.coverMitigated,
-      )
-    )
+    if (events.some((event) => event.type === "unit-damaged" && event.coverMitigated))
       return t(this.language, "feedback.cover");
     return "";
   }
 
   update(time: number): void {
-    if (
-      !this.locked ||
-      this.lifecycle.isPaused ||
-      time - this.lastPresentedAt < 180
-    )
-      return;
-    const event = this.lifecycle.takeNext();
-    if (event) {
-      this.lastPresentedAt = time;
-      this.applyPresentation(event);
-      this.feedback =
-        this.describeEvents([event]) ||
-        (event.type === "unit-moved"
-          ? `${event.unitId} → ${event.to.x},${event.to.y}`
-          : this.feedback);
-      this.notify();
-      return;
+    if (this.locked && !this.lifecycle.isPaused && time - this.lastPresentedAt >= this.presentationClock.duration(180)) {
+      const event = this.lifecycle.takeNext();
+      if (event) {
+        this.lastPresentedAt = time;
+        this.applyPresentation(event);
+        this.feedback = this.describeEvents([event]) || (event.type === "unit-moved" ? `${event.unitId} → ${event.to.x},${event.to.y}` : this.feedback);
+        this.notify();
+      } else if (this.lifecycle.pendingCount === 0 && this.pendingFinal) {
+        this.displayState = this.pendingFinal;
+        this.pendingFinal = null;
+        this.locked = false;
+        this.autoplayDecisions = 0;
+        this.selectedId = null;
+        this.feedback = "";
+        this.notify();
+      }
     }
-    if (this.lifecycle.pendingCount === 0 && this.pendingFinal) {
-      this.displayState = this.pendingFinal;
-      this.pendingFinal = null;
-      this.locked = false;
-      this.selectedId = null;
-      this.feedback = "";
-      this.notify();
-    }
+    this.maybeAutoplay(time);
   }
 
   private applyPresentation(event: BattleEvent): void {
@@ -311,6 +385,7 @@ export class GameRuntime {
   }
 
   openRules(): void {
+    this.cancelAutoplay();
     this.onboardingOpen = true;
     this.rulesOpen = true;
     this.gameplay.setBlocker("rules", true);
@@ -322,6 +397,7 @@ export class GameRuntime {
 
   replay(): void {
     if (this.session.state.status === "active") return;
+    this.cancelAutoplay();
     this.lifecycle.destroy();
     this.observations.replay();
     this.lifecycle = this.newLifecycle();

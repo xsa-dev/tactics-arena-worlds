@@ -37,14 +37,14 @@
 
 ## 5. Autoplay runtime coordination
 
-- [ ] 5.1 Implement a Survivor autoplay coordinator that starts only during an active unblocked player phase and permits at most one in-flight decision.
-- [ ] 5.2 Add battle epochs, state-fingerprint checks, and cancellation on pause, visibility loss, rules, advertisement, orientation block, replay, terminal result, mode change, or accepted command.
-- [ ] 5.3 Submit selected commands only through `dispatch`, refresh candidates after every accepted state transition, and route rejected selections through fresh deterministic fallback.
-- [ ] 5.4 Integrate autoplay with the existing presentation queue so each accepted action finishes animating before the next request and Raider events finish before Survivor autoplay resumes.
-- [ ] 5.5 Enforce configurable pacing and a maximum number of decisions per player phase, then force `end-player-phase` to prevent loops and unbounded API usage.
-- [ ] 5.6 Preserve the existing human interaction path when `human` mode is configured and suppress battle-board input while autoplay owns Survivor control.
-- [ ] 5.7 Add an explicit presentation-idle runtime seam and require unlocked input, empty queues, no pending terminal state, no blockers, and displayed/committed state convergence before enumeration or request.
-- [ ] 5.8 Add a presentation-clock abstraction with bounded `1×`, `2×`, and `4×` multipliers that scales only queued animation/delay/observation durations and applies changes at safe event boundaries.
+- [x] 5.1 Implement a Survivor autoplay coordinator that starts only during an active unblocked player phase and permits at most one in-flight decision.
+- [x] 5.2 Add battle epochs, state-fingerprint checks, and cancellation on pause, visibility loss, rules, advertisement, orientation block, replay, terminal result, mode change, or accepted command.
+- [x] 5.3 Submit selected commands only through `dispatch`, refresh candidates after every accepted state transition, and route rejected selections through fresh deterministic fallback.
+- [x] 5.4 Integrate autoplay with the existing presentation queue so each accepted action finishes animating before the next request and Raider events finish before Survivor autoplay resumes.
+- [x] 5.5 Enforce configurable pacing and a maximum number of decisions per player phase, then force `end-player-phase` to prevent loops and unbounded API usage.
+- [x] 5.6 Preserve the existing human interaction path when `human` mode is configured and suppress battle-board input while autoplay owns Survivor control.
+- [x] 5.7 Add an explicit presentation-idle runtime seam and require unlocked input, empty queues, no pending terminal state, no blockers, and displayed/committed state convergence before enumeration or request.
+- [x] 5.8 Add a presentation-clock abstraction with bounded `1×`, `2×`, and `4×` multipliers that scales only queued animation/delay/observation durations and applies changes at safe event boundaries.
 
 ## 6. Presentation and diagnostics
 
