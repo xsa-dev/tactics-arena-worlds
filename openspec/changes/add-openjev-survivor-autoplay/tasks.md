@@ -17,20 +17,20 @@
 
 ## 3. Policy and OpenJEV client boundary
 
-- [ ] 3.1 Define the asynchronous `SurvivorPolicy` contract, normalized decision result, decision source, and bounded fallback-reason types.
-- [ ] 3.2 Implement the browser OpenJEV policy client against a project-owned proxy DTO, including timeout and `AbortSignal` support.
-- [ ] 3.3 Validate proxy responses against the current candidate map and reject malformed, unknown, or stale selections before they reach `dispatch`.
-- [ ] 3.4 Implement the resilient policy wrapper that invokes deterministic fallback for absent configuration, timeout, transport failure, non-success response, malformed payload, unknown candidate, stale response, or rejected dispatch.
-- [ ] 3.5 Add unit/contract tests for valid OpenJEV selection and every fallback path without using a live credential.
+- [x] 3.1 Define the asynchronous `SurvivorPolicy` contract, normalized decision result, decision source, and bounded fallback-reason types.
+- [x] 3.2 Implement the browser OpenJEV policy client against a project-owned proxy DTO, including timeout and `AbortSignal` support.
+- [x] 3.3 Validate proxy responses against the current candidate map and reject malformed, unknown, or stale selections before they reach `dispatch`.
+- [x] 3.4 Implement the resilient policy wrapper that invokes deterministic fallback for absent configuration, timeout, transport failure, non-success response, malformed payload, unknown candidate, stale response, or rejected dispatch.
+- [x] 3.5 Add unit/contract tests for valid OpenJEV selection and every fallback path without using a live credential.
 - [ ] 3.6 Implement and test the cause-specific transition table: obsolete responses ignore, blockers wait then freshly enumerate, and current-state failures invoke one fallback; late transport completion cannot regain ownership.
 
 ## 4. Secure proxy integration
 
-- [ ] 4.1 Define and document the bounded `/api/openjev/choose` request and response contract independently from the upstream SystemOne payload.
-- [ ] 4.2 Implement a deployable server/serverless proxy handler that validates shape and size, reads `OPENJEV_API_KEY` only from server-side secret storage, applies an upstream timeout, and calls `https://api.openjev.sh/v1/systemone`.
-- [ ] 4.3 Normalize upstream success, rate-limit, timeout, authentication, malformed-response, and unavailable-service outcomes without echoing authorization or raw sensitive error data.
-- [ ] 4.4 Add proxy contract tests with an injected fake upstream transport and tests proving authorization values never enter responses or logs.
-- [ ] 4.5 Document local development and Yandex-compatible HTTPS deployment setup, including the no-proxy deterministic fallback behavior and required CORS/content-security configuration.
+- [x] 4.1 Define and document the bounded `/api/openjev/choose` request and response contract independently from the upstream SystemOne payload.
+- [x] 4.2 Implement a deployable server/serverless proxy handler that validates shape and size, reads `OPENJEV_API_KEY` only from server-side secret storage, applies an upstream timeout, and calls `https://api.openjev.sh/v1/systemone`.
+- [x] 4.3 Normalize upstream success, rate-limit, timeout, authentication, malformed-response, and unavailable-service outcomes without echoing authorization or raw sensitive error data.
+- [x] 4.4 Add proxy contract tests with an injected fake upstream transport and tests proving authorization values never enter responses or logs.
+- [x] 4.5 Document local development and Yandex-compatible HTTPS deployment setup, including the no-proxy deterministic fallback behavior and required CORS/content-security configuration.
 - [ ] 4.6 Add strict method/schema/body/candidate limits, redirect/upstream allowlisting, connect/total timeouts, and normalized `Retry-After` behavior.
 - [ ] 4.7 Add per-IP and pseudonymous-session token buckets, per-battle caps, upstream concurrency limits, global daily budget ceiling, circuit breaker, health probe, and emergency disable controls with deterministic tests.
 - [ ] 4.8 Add allowlisted tactical-field serialization, privacy/vendor disclosure, pseudonymous short-retention rate-limit identifiers, and log/metric redaction tests.
