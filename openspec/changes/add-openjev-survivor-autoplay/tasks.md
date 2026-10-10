@@ -8,12 +8,12 @@
 
 ## 2. Legal command candidates and deterministic fallback
 
-- [ ] 2.1 Implement a pure legal Survivor command enumerator covering reachable moves, normal attacks, abilities, and `end-player-phase` with stable opaque candidate IDs.
-- [ ] 2.2 Add compact JSON-safe battle and candidate summaries plus a canonical decision-state fingerprint.
-- [ ] 2.3 Unit-test that every enumerated candidate is accepted by `dispatch`, illegal commands are absent, equivalent states produce stable IDs/fingerprints, and terminal or enemy phases produce no Survivor decision set.
-- [ ] 2.4 Implement the deterministic Survivor fallback with documented scoring, stable tie-breakers, a per-phase action cap, and guaranteed `end-player-phase` progress.
-- [ ] 2.5 Add headless tests showing equivalent fallback inputs choose identically and fallback-versus-Raider battles always terminate within the existing round limit.
-- [ ] 2.6 Refactor core validation primitives so candidate enumeration and `dispatch` share one legality source rather than duplicating movement, targeting, AP, ability, phase, or status rules.
+- [x] 2.1 Implement a pure legal Survivor command enumerator covering reachable moves, normal attacks, abilities, and `end-player-phase` with stable opaque candidate IDs.
+- [x] 2.2 Add compact JSON-safe battle and candidate summaries plus a canonical decision-state fingerprint.
+- [x] 2.3 Unit-test that every enumerated candidate is accepted by `dispatch`, illegal commands are absent, equivalent states produce stable IDs/fingerprints, and terminal or enemy phases produce no Survivor decision set.
+- [x] 2.4 Implement the deterministic Survivor fallback with documented scoring, stable tie-breakers, a per-phase action cap, and guaranteed `end-player-phase` progress.
+- [x] 2.5 Add headless tests showing equivalent fallback inputs choose identically and fallback-versus-Raider battles always terminate within the existing round limit.
+- [x] 2.6 Refactor core validation primitives so candidate enumeration and `dispatch` share one legality source rather than duplicating movement, targeting, AP, ability, phase, or status rules.
 
 ## 3. Policy and OpenJEV client boundary
 
