@@ -52,11 +52,16 @@ const en = {
     "6. End the turn when ready. Eliminate all Raiders by round 8.",
   "onboarding.dismiss": "Start battle",
   "onboarding.ai.1": "1. Watch the Survivors act automatically.",
-  "onboarding.ai.2": "2. OpenJEV suggests legal actions; deterministic fallback keeps the battle moving.",
-  "onboarding.ai.3": "3. Moving costs 1 AP per tile. Blue cells show reachable movement.",
-  "onboarding.ai.4": "4. Normal attacks cost 3 AP. Red outlines show legal targets.",
-  "onboarding.ai.5": "5. Abilities remain available once per battle: Aimed Shot, Burst, and Medkit.",
-  "onboarding.ai.6": "6. Pause or open Rules at any time. Replay starts a fresh battle.",
+  "onboarding.ai.2":
+    "2. OpenJEV suggests legal actions; deterministic fallback keeps the battle moving.",
+  "onboarding.ai.3":
+    "3. Moving costs 1 AP per tile. Blue cells show reachable movement.",
+  "onboarding.ai.4":
+    "4. Normal attacks cost 3 AP. Red outlines show legal targets.",
+  "onboarding.ai.5":
+    "5. Abilities remain available once per battle: Aimed Shot, Burst, and Medkit.",
+  "onboarding.ai.6":
+    "6. Pause or open Rules at any time. Replay starts a fresh battle.",
   "feedback.select": "Select a Survivor",
   "feedback.target": "Choose a highlighted target",
   "feedback.enemy": "Raiders are acting…",
@@ -133,11 +138,16 @@ const ru: Record<UiKey, string> = {
     "6. Завершите ход, когда готовы. Уничтожьте Рейдеров до конца 8-го раунда.",
   "onboarding.dismiss": "Начать битву",
   "onboarding.ai.1": "1. Наблюдайте: Выжившие действуют автоматически.",
-  "onboarding.ai.2": "2. OpenJEV предлагает легальные действия, а резервная политика обеспечивает прогресс.",
-  "onboarding.ai.3": "3. Движение стоит 1 ОД за клетку. Синие клетки показывают путь.",
-  "onboarding.ai.4": "4. Обычная атака стоит 3 ОД. Красные контуры показывают цели.",
-  "onboarding.ai.5": "5. Способности доступны раз за битву: Точный выстрел, Очередь и Аптечка.",
-  "onboarding.ai.6": "6. В любой момент откройте Правила. Повтор запускает новую битву.",
+  "onboarding.ai.2":
+    "2. OpenJEV предлагает легальные действия, а резервная политика обеспечивает прогресс.",
+  "onboarding.ai.3":
+    "3. Движение стоит 1 ОД за клетку. Синие клетки показывают путь.",
+  "onboarding.ai.4":
+    "4. Обычная атака стоит 3 ОД. Красные контуры показывают цели.",
+  "onboarding.ai.5":
+    "5. Способности доступны раз за битву: Точный выстрел, Очередь и Аптечка.",
+  "onboarding.ai.6":
+    "6. В любой момент откройте Правила. Повтор запускает новую битву.",
   "feedback.select": "Выберите Выжившего",
   "feedback.target": "Выберите подсвеченную цель",
   "feedback.enemy": "Ход Рейдеров…",

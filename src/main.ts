@@ -187,11 +187,13 @@ async function start(): Promise<void> {
   aiSpeed.classList.toggle("hidden", !isAi);
   aiSpeedLabel.textContent = t(language, "ai.speed");
   for (const [button, value] of speedButtons) {
-    button.textContent = t(language, `ai.speed.${value}` as Parameters<typeof t>[1]);
+    button.textContent = t(
+      language,
+      `ai.speed.${value}` as Parameters<typeof t>[1],
+    );
     button.setAttribute("aria-label", `${t(language, "ai.speed")} ${value}×`);
     button.addEventListener("click", () => {
-      runtime.presentationClock.setSpeed(value);
-      sessionStorage.setItem("tactics-ai-speed", String(value));
+      runtime.presentationClock.multiplier = value;
       renderSpeed();
     });
   }
@@ -270,7 +272,10 @@ async function start(): Promise<void> {
   runtime.subscribe(renderDom);
   const renderSpeed = () => {
     for (const [button, value] of speedButtons)
-      button.classList.toggle("active", runtime.presentationClock.multiplier === value);
+      button.classList.toggle(
+        "active",
+        runtime.presentationClock.multiplier === value,
+      );
   };
   renderSpeed();
   renderDom();

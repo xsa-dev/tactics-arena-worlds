@@ -1,9 +1,7 @@
 import type { SurvivorPolicyConfig } from "../survivor/policy";
 
 export type ReleaseProfile =
-  | "study-draft"
-  | "catalog-release"
-  | "ai-exhibition";
+  "study-draft" | "catalog-release" | "ai-exhibition";
 export type AdPolicy = "disabled_for_study" | "post_battle_fullscreen";
 
 export interface ReleaseDeclarations {
@@ -56,12 +54,18 @@ const NO_PROGRESSION: ReleaseDeclarations = {
 const AI_EXHIBITION: AiExhibitionDeclarations = Object.freeze({
   proxyUrl: "https://proxy.tactics-arena.example/v1/openjev/choose",
   contractVersion: "v1",
-  allowedOrigins: Object.freeze(["https://yandex.ru", "https://games.yandex.ru"]),
+  allowedOrigins: Object.freeze([
+    "https://yandex.ru",
+    "https://games.yandex.ru",
+  ]),
   vendor: "openjev",
   disclosure: "external-ai-with-deterministic-fallback",
 });
 
-const SURVIVOR_PROFILES: Record<ReleaseProfile, Readonly<SurvivorPolicyConfig>> = {
+const SURVIVOR_PROFILES: Record<
+  ReleaseProfile,
+  Readonly<SurvivorPolicyConfig>
+> = {
   "study-draft": Object.freeze({
     mode: "human",
     proxyUrl: "",
@@ -116,13 +120,16 @@ export function createReleaseConfig(
     analyticsSchemaVersion: RELEASE_CONSTANTS.analyticsSchemaVersion,
     declarations: Object.freeze({ ...NO_PROGRESSION }),
     survivor: SURVIVOR_PROFILES[profile],
-    aiExhibition: profile === "ai-exhibition" ? AI_EXHIBITION : Object.freeze({
-      proxyUrl: "",
-      contractVersion: "v1",
-      allowedOrigins: Object.freeze([]),
-      vendor: "openjev",
-      disclosure: "external-ai-with-deterministic-fallback",
-    }),
+    aiExhibition:
+      profile === "ai-exhibition"
+        ? AI_EXHIBITION
+        : Object.freeze({
+            proxyUrl: "",
+            contractVersion: "v1",
+            allowedOrigins: Object.freeze([]),
+            vendor: "openjev",
+            disclosure: "external-ai-with-deterministic-fallback",
+          }),
   });
 }
 

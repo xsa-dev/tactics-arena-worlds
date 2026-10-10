@@ -25,7 +25,8 @@ export interface BootstrapDependencies {
 export const systemClock: DeterministicClock = {
   now: () => Date.now(),
   setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
-  clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
+  clearTimeout: (handle) =>
+    globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
 export const createBootstrapDependencies = (

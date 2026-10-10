@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Revoke the previously disclosed OpenJEV credential and document that implementation and CI require a newly provisioned server-side `OPENJEV_API_KEY`.
 - [x] 1.2 Add typed Survivor control configuration for `openjev` and `human`, with `openjev` as the `ai-exhibition` profile default and explicit immutable proxy URL, timeout, pacing, and per-phase action-cap settings.
-- [ ] 1.3 Add release and test guards that fail if an OpenJEV key or bearer token pattern appears in tracked files, generated browser assets, logs, or the release archive.
+- [x] 1.3 Add release and test guards that fail if an OpenJEV key or bearer token pattern appears in tracked files, generated browser assets, logs, or the release archive.
 - [x] 1.4 Add a separate immutable `ai-exhibition` release profile with versioned HTTPS proxy endpoint, contract version, origin allowlist, vendor declaration, and no runtime query/local-storage overrides; preserve the existing human profile unchanged.
 - [x] 1.5 Define typed bootstrap dependency injection for control mode, `SurvivorPolicy`, proxy transport, deterministic clock, and deferred test responses.
 
@@ -59,13 +59,13 @@
 
 ## 7. Acceptance, release, and default enablement
 
-- [ ] 7.1 Add browser tests at desktop and 640×360 mobile landscape proving a default battle advances through Survivor and Raider actions without board input.
+- [x] 7.1 Add browser tests at desktop and 640×360 mobile landscape proving a default battle advances through Survivor and Raider actions without board input.
 - [ ] 7.2 Add browser tests for pause/resume during a pending decision, stale late response rejection, fallback after proxy failure, terminal result, and clean replay with a new battle epoch.
 - [ ] 7.3 Run and pass formatting, strict typecheck, full unit/contract/browser suites, production build, release packaging, archive validation, and dependency/security audit.
 - [ ] 7.4 Inspect the generated bundle and release archive to prove no OpenJEV credential or bearer value is embedded.
 - [ ] 7.5 Validate one staging battle through the real HTTPS proxy with a newly provisioned secret, recording only non-sensitive evidence of OpenJEV and fallback behavior.
 - [ ] 7.6 Set `openjev` as the default Survivor control mode only after all fallback and acceptance gates pass, while retaining the documented `human` rollback override.
-- [ ] 7.7 Run strict validation for `add-openjev-survivor-autoplay` and re-run the existing prototype and release OpenSpec validations to confirm no regression in their contracts.
+- [x] 7.7 Run strict validation for `add-openjev-survivor-autoplay` and re-run the existing prototype and release OpenSpec validations to confirm no regression in their contracts.
 - [ ] 7.8 Qualify exact AI exhibition artifact connectivity to the declared proxy under production CSP/origin rules, plus fail-fast fallback when health, circuit, quota, or budget gates reject live service.
 - [ ] 7.9 Re-run the accepted human browser flow explicitly with human bootstrap and prove onboarding, winning path, analytics semantics, and release package remain unchanged.
 - [ ] 7.10 Add deterministic unit/browser coverage proving identical command/event/state/replay outcomes at `1×`, `2×`, and `4×`, safe mid-animation switching, pause/resume without duplicates, and usable controls at desktop and 640×360.
