@@ -1,8 +1,10 @@
 ## 1. Security and configuration foundation
 
 - [ ] 1.1 Revoke the previously disclosed OpenJEV credential and document that implementation and CI require a newly provisioned server-side `OPENJEV_API_KEY`.
-- [ ] 1.2 Add typed Survivor control configuration for `openjev` and `human`, with `openjev` as the eventual default and explicit proxy URL, timeout, pacing, and per-phase action-cap settings.
+- [ ] 1.2 Add typed Survivor control configuration for `openjev` and `human`, with `openjev` as the `ai-exhibition` profile default and explicit immutable proxy URL, timeout, pacing, and per-phase action-cap settings.
 - [ ] 1.3 Add release and test guards that fail if an OpenJEV key or bearer token pattern appears in tracked files, generated browser assets, logs, or the release archive.
+- [ ] 1.4 Add a separate immutable `ai-exhibition` release profile with versioned HTTPS proxy endpoint, contract version, origin allowlist, vendor declaration, and no runtime query/local-storage overrides; preserve the existing human profile unchanged.
+- [ ] 1.5 Define typed bootstrap dependency injection for control mode, `SurvivorPolicy`, proxy transport, deterministic clock, and deferred test responses.
 
 ## 2. Legal command candidates and deterministic fallback
 
@@ -11,6 +13,7 @@
 - [ ] 2.3 Unit-test that every enumerated candidate is accepted by `dispatch`, illegal commands are absent, equivalent states produce stable IDs/fingerprints, and terminal or enemy phases produce no Survivor decision set.
 - [ ] 2.4 Implement the deterministic Survivor fallback with documented scoring, stable tie-breakers, a per-phase action cap, and guaranteed `end-player-phase` progress.
 - [ ] 2.5 Add headless tests showing equivalent fallback inputs choose identically and fallback-versus-Raider battles always terminate within the existing round limit.
+- [ ] 2.6 Refactor core validation primitives so candidate enumeration and `dispatch` share one legality source rather than duplicating movement, targeting, AP, ability, phase, or status rules.
 
 ## 3. Policy and OpenJEV client boundary
 
@@ -19,6 +22,7 @@
 - [ ] 3.3 Validate proxy responses against the current candidate map and reject malformed, unknown, or stale selections before they reach `dispatch`.
 - [ ] 3.4 Implement the resilient policy wrapper that invokes deterministic fallback for absent configuration, timeout, transport failure, non-success response, malformed payload, unknown candidate, stale response, or rejected dispatch.
 - [ ] 3.5 Add unit/contract tests for valid OpenJEV selection and every fallback path without using a live credential.
+- [ ] 3.6 Implement and test the cause-specific transition table: obsolete responses ignore, blockers wait then freshly enumerate, and current-state failures invoke one fallback; late transport completion cannot regain ownership.
 
 ## 4. Secure proxy integration
 
@@ -27,6 +31,9 @@
 - [ ] 4.3 Normalize upstream success, rate-limit, timeout, authentication, malformed-response, and unavailable-service outcomes without echoing authorization or raw sensitive error data.
 - [ ] 4.4 Add proxy contract tests with an injected fake upstream transport and tests proving authorization values never enter responses or logs.
 - [ ] 4.5 Document local development and Yandex-compatible HTTPS deployment setup, including the no-proxy deterministic fallback behavior and required CORS/content-security configuration.
+- [ ] 4.6 Add strict method/schema/body/candidate limits, redirect/upstream allowlisting, connect/total timeouts, and normalized `Retry-After` behavior.
+- [ ] 4.7 Add per-IP and pseudonymous-session token buckets, per-battle caps, upstream concurrency limits, global daily budget ceiling, circuit breaker, health probe, and emergency disable controls with deterministic tests.
+- [ ] 4.8 Add allowlisted tactical-field serialization, privacy/vendor disclosure, pseudonymous short-retention rate-limit identifiers, and log/metric redaction tests.
 
 ## 5. Autoplay runtime coordination
 
@@ -36,6 +43,7 @@
 - [ ] 5.4 Integrate autoplay with the existing presentation queue so each accepted action finishes animating before the next request and Raider events finish before Survivor autoplay resumes.
 - [ ] 5.5 Enforce configurable pacing and a maximum number of decisions per player phase, then force `end-player-phase` to prevent loops and unbounded API usage.
 - [ ] 5.6 Preserve the existing human interaction path when `human` mode is configured and suppress battle-board input while autoplay owns Survivor control.
+- [ ] 5.7 Add an explicit presentation-idle runtime seam and require unlocked input, empty queues, no pending terminal state, no blockers, and displayed/committed state convergence before enumeration or request.
 
 ## 6. Presentation and diagnostics
 
@@ -43,6 +51,9 @@
 - [ ] 6.2 Keep global rules, pause/lifecycle, language, result, and replay controls available while automated board commands are disabled.
 - [ ] 6.3 Emit JSON-safe decision diagnostics containing battle ID, round, state fingerprint, candidate ID, source, latency bucket, bounded fallback reason, and accepted event types.
 - [ ] 6.4 Add localization completeness and diagnostics redaction tests that reject credentials, authorization headers, raw upstream errors, and private reasoning fields.
+- [ ] 6.5 Create a separate localized six-step AI exhibition onboarding freeze for RU/EN and 640×360 that preserves ability teaching while explaining observation, policy/fallback status, pause/rules, and replay.
+- [ ] 6.6 Define stable AI-specific analytics events without changing the existing human study funnel semantics.
+- [ ] 6.7 Implement the versioned replay envelope and verify offline replay of accepted Survivor commands plus deterministic Raider phases against terminal state and event checksum.
 
 ## 7. Acceptance, release, and default enablement
 
@@ -53,3 +64,5 @@
 - [ ] 7.5 Validate one staging battle through the real HTTPS proxy with a newly provisioned secret, recording only non-sensitive evidence of OpenJEV and fallback behavior.
 - [ ] 7.6 Set `openjev` as the default Survivor control mode only after all fallback and acceptance gates pass, while retaining the documented `human` rollback override.
 - [ ] 7.7 Run strict validation for `add-openjev-survivor-autoplay` and re-run the existing prototype and release OpenSpec validations to confirm no regression in their contracts.
+- [ ] 7.8 Qualify exact AI exhibition artifact connectivity to the declared proxy under production CSP/origin rules, plus fail-fast fallback when health, circuit, quota, or budget gates reject live service.
+- [ ] 7.9 Re-run the accepted human browser flow explicitly with human bootstrap and prove onboarding, winning path, analytics semantics, and release package remain unchanged.

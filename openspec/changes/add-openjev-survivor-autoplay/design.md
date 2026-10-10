@@ -42,11 +42,11 @@ The deterministic policy SHALL always select from the supplied candidates and SH
 
 **Alternative considered:** stop the battle and show an error when OpenJEV is unavailable. That would make the default experience depend on an optional external service and would fail on the current static deployment.
 
-### 3. Put credentials behind a narrow same-origin proxy contract
+### 3. Put credentials behind a narrow versioned HTTPS proxy contract
 
-The browser will call a configurable same-origin endpoint such as `/api/openjev/choose`. The proxy reads `OPENJEV_API_KEY` from server-side secret storage and calls OpenJEV SystemOne. The browser request and response use project-owned DTOs rather than exposing the upstream payload as an application contract. The proxy SHALL reject oversized or structurally invalid requests, apply an upstream timeout, return normalized error codes, and never echo or log authorization headers.
+The browser will call the immutable HTTPS endpoint declared by the `ai-exhibition` release profile at the versioned path `/v1/openjev/choose`. The proxy reads `OPENJEV_API_KEY` from server-side secret storage and calls OpenJEV SystemOne. Browser and proxy communicate through project-owned DTOs rather than exposing the upstream payload as an application contract. The proxy SHALL reject oversized or structurally invalid requests, apply an upstream timeout, return normalized error codes, and never echo or log authorization headers.
 
-Local/static builds with no endpoint use deterministic fallback immediately. Deployment of the proxy is independently configurable so Yandex static packaging remains possible, although live OpenJEV behavior requires a reachable HTTPS proxy permitted by the host platform.
+Local builds and the preserved human profile do not call the proxy. Development and tests may inject a local transport through typed bootstrap dependencies. Deployment of the operator-managed proxy is independently qualified so static Yandex packaging remains reproducible; live OpenJEV behavior requires the exact declared HTTPS endpoint to pass origin/CSP and health qualification.
 
 **Alternative considered:** use `import.meta.env.VITE_OPENJEV_API_KEY`. Vite embeds `VITE_` values into public JavaScript and therefore cannot protect a credential.
 
@@ -60,13 +60,53 @@ Only one Survivor decision request may be active at a time. The next request sta
 
 ### 5. Default to autoplay but retain an explicit human override
 
-A typed runtime configuration selects `openjev` by default and permits `human` for development, browser tests, and accessibility inspection. Human input is disabled while autoplay owns the Survivor phase, except for global lifecycle and UI controls such as rules, pause, language, and replay. The HUD visibly labels the active policy and whether a decision used OpenJEV or fallback.
+The typed runtime configuration selects `openjev` for the `ai-exhibition` profile and `human` for the preserved human profile. Development and browser tests can inject either mode through bootstrap dependencies. Human board input is disabled while autoplay owns the Survivor phase, except for global lifecycle and UI controls such as rules, pause, language, and replay. The HUD visibly labels the active policy and whether a decision used OpenJEV or fallback.
 
 **Alternative considered:** remove human controls entirely. Keeping the override reduces rollback risk and preserves the current acceptance path.
 
 ### 6. Record accepted decisions, not private reasoning
 
 Diagnostics will record battle ID, round, state fingerprint, selected candidate ID, source (`openjev` or `fallback`), latency bucket, fallback reason, and the resulting accepted event types. They will not record API keys, authorization headers, raw upstream traces, or hidden model reasoning. The accepted command log is sufficient to replay a completed battle through the deterministic engine.
+
+### 7. Use one legality source and a presentation-idle boundary
+
+Candidate enumeration SHALL be implemented in `src/core` from the same validation primitives used by `dispatch`; presentation code SHALL NOT duplicate AP, path, target, ability, or phase rules. `dispatch` remains the only state-mutation boundary. Because `end-player-phase` currently commits the complete Raider resolution synchronously while `displayState` presents queued events later, the autoplay coordinator SHALL request another decision only after runtime explicitly reports presentation idle: no lock, no pending terminal transition, no queued event, no active blocker, and displayed state equal to committed session state.
+
+The runtime will expose a narrow `whenPresentationIdle`/subscription seam rather than polling Phaser internals. Tests will be able to drive that seam with a deterministic clock.
+
+### 8. Define cancellation and fallback ownership by cause
+
+The coordinator uses the following transition rules:
+
+- A response from an obsolete battle epoch, replay, terminal battle, changed phase, or already-advanced fingerprint is discarded with no fallback.
+- Lifecycle blocking aborts or invalidates the request, starts no fallback while blocked, and performs fresh enumeration after presentation becomes idle and gameplay is unblocked.
+- Timeout, transport failure, normalized upstream failure, malformed response, unknown candidate, or dispatch rejection for the still-current unblocked fingerprint invokes one deterministic fallback decision.
+- Aborted or stale requests do not consume the accepted-action cap. Attempted live requests do consume the per-battle remote-request budget even if their transport settles late.
+- Logical ownership ends immediately on abort; a late physical transport completion cannot reacquire ownership. At most one logical request exists for an epoch/fingerprint, and late completions are ignored.
+
+### 9. Fix the production proxy and release-profile contract
+
+Implementation will provide a provider-neutral Node-compatible edge/serverless handler deployed by the operator as a separate HTTPS service. Its public contract is versioned at `/v1/openjev/choose`. The `ai-exhibition` release profile MUST contain an immutable HTTPS endpoint, contract version, allowed game origins, and external-dependency declaration. The production artifact MUST NOT accept query-string or local-storage switches that alter endpoint or control mode. Local development injects configuration through the bootstrap factory; release configuration is compile-time validated.
+
+The proxy permits only `POST` with JSON, enforces an exact schema, caps request bytes and candidate count, validates candidate identifiers, rejects redirects and arbitrary upstream URLs, and applies both connect and total timeouts. CORS is an allowlist and never treated as authentication.
+
+### 10. Bound anonymous abuse, cost, and outage amplification
+
+Because a static game cannot hold a client credential, the public proxy is deliberately anonymous but bounded. It applies token buckets by normalized source IP and opaque installation/session token, caps requests per battle, limits concurrent upstream requests, and enforces a global daily request/spend ceiling. It returns only normalized codes with `Retry-After` where relevant. A circuit breaker opens after configured upstream failure/rate-limit thresholds, serves immediate fallback signals during cooldown, and closes only after bounded health probes. No browser retry loop is allowed; the next live attempt follows the circuit policy rather than every gameplay action.
+
+Operational configuration, thresholds, secret rotation ownership, health endpoint, and emergency disable switch are documented and release-qualified. The browser always remains functional through deterministic fallback.
+
+### 11. Minimize vendor data and preserve the frozen human study
+
+The OpenJEV payload contains only map dimensions/terrain identifiers, unit identifiers and combat attributes, phase/round, and legal candidate summaries. It excludes tester ID, session ID, platform player identity, locale-derived personal data, analytics history, free text, and IP address. The proxy may use IP transiently for rate limiting but SHALL not place raw IPs or request payloads in application logs; short-lived keyed hashes and aggregate counters are permitted with documented retention. Product privacy copy and release metadata disclose the external AI processor and fallback behavior.
+
+Autoplay ships in a separate `ai-exhibition` profile with its own onboarding freeze and analytics interpretation. The accepted human study/release profile, six-step human-control onboarding, frozen winning-path browser flow, and study metrics remain unchanged. The autoplay six-step onboarding preserves required ability names/effects but teaches observation, AI/fallback status, pause/rules, and replay rather than unusable board gestures.
+
+### 12. Make configuration, testing, analytics, and replay executable
+
+`src/main.ts` will construct runtime dependencies from a typed bootstrap object. Production release profiles provide immutable mode/proxy values; unit and browser tests may inject a `SurvivorPolicy`, proxy transport, deterministic clock, and deferred responses without runtime query switches. Existing browser flows explicitly bootstrap `human`; new AI exhibition flows bootstrap `openjev` with deterministic valid, delayed, malformed, rate-limited, and failed transports.
+
+Accepted-command diagnostics form a replay envelope containing schema version, build version, scenario identifier/hash, initial battle state hash, ordered accepted Survivor commands, decision source, and resulting event-type checksum. Replaying uses recorded accepted commands and the deterministic Raider engine without contacting OpenJEV. Stable analytics events distinguish `ai_decision_requested`, `ai_decision_accepted`, `ai_fallback_used`, and `ai_circuit_state_changed`; rendering does not emit them, and existing human study funnel semantics are not reinterpreted.
 
 ## Risks / Trade-offs
 
@@ -77,21 +117,24 @@ Diagnostics will record battle ID, round, state fingerprint, selected candidate 
 - **[A policy repeatedly avoids ending the phase]** → Enforce a maximum decision count per player phase and then submit `end-player-phase`.
 - **[Replay is not identical across new live calls]** → Persist the accepted command log for diagnostics; exact replay uses recorded commands rather than re-querying OpenJEV.
 - **[Previously disclosed credential is abused]** → Revoke it before implementation and provision a new secret only in the proxy environment.
+- **[Anonymous clients abuse the public proxy]** → Apply layered token buckets, concurrency/request caps, a global budget breaker, origin checks, and emergency disable while treating CORS only as browser containment.
+- **[Autoplay invalidates the frozen human cohort]** → Ship it as a separate qualified `ai-exhibition` profile and leave the accepted human profile and analytics cohort unchanged.
+- **[Committed state advances ahead of animation]** → Gate every new request on the explicit presentation-idle seam and fingerprint the displayed/committed snapshot.
 
 ## Migration Plan
 
 1. Revoke the disclosed OpenJEV credential and prepare a new server-side secret outside the repository.
 2. Add legal-command enumeration and deterministic Survivor policy with unit tests, without changing the default mode yet.
 3. Add the policy interface, autoplay coordinator, lifecycle cancellation, diagnostics, and browser tests behind a development flag.
-4. Implement and contract-test the same-origin proxy adapter using injected upstream transport and no real credential in CI.
-5. Validate human mode, fallback AI-vs-AI, live proxy staging, pause/resume, replay, mobile layout, and terminal battle behavior.
-6. Change the configured default to `openjev` only after fallback and browser acceptance paths pass.
+4. Implement and contract-test the versioned HTTPS proxy, abuse controls, circuit breaker, privacy redaction, and injected upstream transport with no real credential in CI.
+5. Add the separate `ai-exhibition` release profile, mode-aware onboarding, typed bootstrap injection, presentation-idle seam, analytics, and replay envelope.
+6. Validate human profile, fallback AI-vs-AI, live proxy staging, pause/resume, replay, mobile layout, terminal behavior, budget breaker, and exact release-artifact endpoint/CSP behavior.
+7. Make `openjev` the default only for the qualified `ai-exhibition` profile; retain the existing human profile as rollback and frozen-study behavior.
 
 Rollback sets the runtime mode back to `human` or disables the proxy configuration. The core battle state and saved-data format require no migration.
 
 ## Open Questions
 
-- Which HTTPS/serverless host will serve the proxy for the Yandex release, and what outbound/CORS constraints apply?
-- What timeout, per-battle request cap, and spend ceiling should production use?
-- Should the product expose the human/openjev toggle to players, or keep it as build/runtime configuration only?
-- Should exact command logs remain local diagnostics or be included in an opt-in analytics export?
+- Which operator account and infrastructure repository own deployment of the provider-neutral HTTPS handler?
+- What numeric timeout, rate, concurrency, per-battle, and daily budget values are approved after staging load/cost measurement?
+- Should replay envelopes remain local diagnostics or be included in a separately consented export?

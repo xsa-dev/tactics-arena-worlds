@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: OpenJEV controls Survivor turns by default
-The system SHALL configure OpenJEV-backed Survivor autoplay as the default control mode. After onboarding and while an active battle is in the player phase, the system SHALL request and execute Survivor decisions without requiring board input from a human. The existing deterministic Raider phase SHALL remain unchanged.
+The system SHALL configure OpenJEV-backed Survivor autoplay as the default control mode of the `ai-exhibition` profile. After onboarding and while an active battle is in the player phase, the system SHALL request and execute Survivor decisions without requiring board input from a human. The existing deterministic Raider phase SHALL remain unchanged.
 
 #### Scenario: Default battle starts autoplay
 - **WHEN** onboarding is dismissed and a new battle enters an unblocked player phase with default configuration
@@ -112,3 +112,84 @@ The system SHALL provide automated tests for legal-command enumeration, determin
 #### Scenario: Production artifact is qualified
 - **WHEN** the release security checks inspect generated assets and archives
 - **THEN** they confirm that no configured OpenJEV secret or bearer token is embedded
+
+### Requirement: Autoplay waits for committed and presented state convergence
+The system SHALL expose an explicit presentation-idle signal. It SHALL enumerate or request a new Survivor decision only when gameplay is unblocked, no presentation event or terminal transition is pending, runtime input is unlocked, and displayed state equals the committed session state. Candidate legality SHALL derive from the same core validation primitives as `dispatch`.
+
+#### Scenario: Raider phase is committed before its animation finishes
+- **WHEN** `end-player-phase` has committed Raider results but presentation events remain queued
+- **THEN** Survivor autoplay issues no request until the presentation-idle signal confirms displayed and committed state convergence
+
+#### Scenario: Candidate enumeration and dispatch share rules
+- **WHEN** a candidate is emitted for the current player phase
+- **THEN** it is legal under the same core AP, path, target, ability, phase, and status validation used by `dispatch`
+
+### Requirement: Cancellation behavior is deterministic by cause
+The system SHALL distinguish obsolete-state cancellation, lifecycle blocking, and current-state service failure. Obsolete responses SHALL be ignored without fallback. Blocked gameplay SHALL wait and freshly enumerate after unblocking. Current-state service failures SHALL invoke at most one fallback decision. Late transport completions SHALL never regain logical ownership.
+
+#### Scenario: Old battle response arrives after replay
+- **WHEN** a response from a prior battle epoch arrives
+- **THEN** it is discarded without fallback, diagnostics mutation, or battle-state mutation
+
+#### Scenario: Visibility resumes after cancellation
+- **WHEN** visibility blocking cancelled a request and gameplay later becomes unblocked and presentation-idle
+- **THEN** the system freshly enumerates current candidates before any new live or fallback selection
+
+#### Scenario: Current request fails while gameplay is active
+- **WHEN** the only logical request for the current fingerprint fails and gameplay remains unblocked
+- **THEN** exactly one deterministic fallback decision is attempted for freshly validated current candidates
+
+### Requirement: AI exhibition uses an immutable qualified release profile
+The system SHALL define a separate `ai-exhibition` release profile with immutable OpenJEV control mode, versioned HTTPS proxy endpoint, contract version, allowed origins, and external-vendor declaration. Runtime query parameters, local storage, and player-controlled input MUST NOT change production endpoint or release mode. The existing human study/release profile and its frozen behavior SHALL remain unchanged.
+
+#### Scenario: AI exhibition release is built
+- **WHEN** the production AI exhibition artifact is generated
+- **THEN** its manifest contains the validated immutable proxy endpoint and contract version and its browser bundle contains no secret
+
+#### Scenario: Existing human profile is built
+- **WHEN** the existing human study/release profile is generated
+- **THEN** it retains human controls, the accepted six-step onboarding, existing winning-path flow, and existing analytics semantics without contacting OpenJEV
+
+### Requirement: Public proxy abuse and cost are bounded
+The proxy SHALL enforce exact request schema and size limits, candidate-count limits, per-source and per-session token buckets, per-battle request caps, upstream concurrency limits, and a global daily budget ceiling. It SHALL implement a failure/rate-limit circuit breaker and emergency disable switch. CORS and origin checks SHALL NOT be the sole abuse control.
+
+#### Scenario: Client exceeds a bounded quota
+- **WHEN** a source, session, battle, concurrency, or global budget limit is exceeded
+- **THEN** the proxy performs no upstream request, returns a normalized bounded response, and the browser uses deterministic fallback without an immediate retry loop
+
+#### Scenario: Upstream outage opens the circuit
+- **WHEN** configured failure or rate-limit thresholds are reached
+- **THEN** the circuit opens for its cooldown, live requests fail fast to fallback, and only bounded health probes may close it
+
+### Requirement: Vendor data is minimized and disclosed
+The OpenJEV request SHALL contain only tactical battle state and legal candidate summaries. It MUST exclude tester identifiers, platform identity, analytics history, arbitrary free text, and raw IP addresses. Proxy logs SHALL exclude authorization, raw payloads, and raw IPs; any rate-limit identifier MUST be short-lived and pseudonymous with documented retention. The AI exhibition release SHALL disclose the external AI processor and fallback behavior.
+
+#### Scenario: Upstream request is inspected
+- **WHEN** a normalized OpenJEV request is captured in a contract test
+- **THEN** it contains only allowlisted tactical fields and no tester, platform, analytics, free-text, authorization, or raw-IP data
+
+#### Scenario: Operational logs are inspected
+- **WHEN** proxy logs and metrics are reviewed
+- **THEN** they contain normalized codes and aggregate counters without raw payloads, raw IPs, credentials, or private model reasoning
+
+### Requirement: Onboarding and test bootstrap are mode-aware
+The AI exhibition profile SHALL use a localized six-step onboarding that preserves required ability content while teaching observation, policy/fallback status, pause/rules, and replay. The human profile SHALL retain its human-action onboarding. Runtime construction SHALL accept typed dependency injection for policy, transport, and clock in tests without exposing production runtime switches.
+
+#### Scenario: AI exhibition onboarding is displayed
+- **WHEN** a Russian or English AI exhibition starts at desktop or 640×360 landscape
+- **THEN** all six steps fit, describe automated control and required abilities, and do not instruct the player to issue disabled board commands
+
+#### Scenario: Browser test injects a delayed policy response
+- **WHEN** an acceptance test supplies a deferred transport and deterministic clock through bootstrap construction
+- **THEN** it can prove pending, timeout, cancellation, stale-response, and fallback behavior without changing the production artifact or using a live credential
+
+### Requirement: Accepted decisions produce replayable evidence
+The system SHALL record a versioned replay envelope with build and scenario identifiers, initial-state hash, ordered accepted Survivor commands, decision source, and resulting event checksum. Replaying the envelope SHALL not call OpenJEV and SHALL reproduce the same deterministic terminal state for a compatible build/scenario. AI analytics SHALL use stable decision/fallback/circuit events separate from the existing human study funnel.
+
+#### Scenario: Completed AI battle is replayed from evidence
+- **WHEN** a compatible replay envelope is executed through the battle engine
+- **THEN** recorded Survivor commands and deterministic Raider phases reproduce the recorded terminal state and event checksum without network access
+
+#### Scenario: AI analytics are exported
+- **WHEN** AI exhibition diagnostics are exported
+- **THEN** decision request, accepted decision, fallback, and circuit events are distinguishable and do not alter the semantics of existing human study events
