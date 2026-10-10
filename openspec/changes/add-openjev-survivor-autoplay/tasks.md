@@ -44,6 +44,7 @@
 - [ ] 5.5 Enforce configurable pacing and a maximum number of decisions per player phase, then force `end-player-phase` to prevent loops and unbounded API usage.
 - [ ] 5.6 Preserve the existing human interaction path when `human` mode is configured and suppress battle-board input while autoplay owns Survivor control.
 - [ ] 5.7 Add an explicit presentation-idle runtime seam and require unlocked input, empty queues, no pending terminal state, no blockers, and displayed/committed state convergence before enumeration or request.
+- [ ] 5.8 Add a presentation-clock abstraction with bounded `1×`, `2×`, and `4×` multipliers that scales only queued animation/delay/observation durations and applies changes at safe event boundaries.
 
 ## 6. Presentation and diagnostics
 
@@ -54,6 +55,7 @@
 - [ ] 6.5 Create a separate localized six-step AI exhibition onboarding freeze for RU/EN and 640×360 that preserves ability teaching while explaining observation, policy/fallback status, pause/rules, and replay.
 - [ ] 6.6 Define stable AI-specific analytics events without changing the existing human study funnel semantics.
 - [ ] 6.7 Implement the versioned replay envelope and verify offline replay of accepted Survivor commands plus deterministic Raider phases against terminal state and event checksum.
+- [ ] 6.8 Add localized touch-safe speed controls and labels, default `1×`, current-session persistence across replay, fresh-session reset, and minimum-readable phase/policy/result indicators at `4×`.
 
 ## 7. Acceptance, release, and default enablement
 
@@ -66,3 +68,4 @@
 - [ ] 7.7 Run strict validation for `add-openjev-survivor-autoplay` and re-run the existing prototype and release OpenSpec validations to confirm no regression in their contracts.
 - [ ] 7.8 Qualify exact AI exhibition artifact connectivity to the declared proxy under production CSP/origin rules, plus fail-fast fallback when health, circuit, quota, or budget gates reject live service.
 - [ ] 7.9 Re-run the accepted human browser flow explicitly with human bootstrap and prove onboarding, winning path, analytics semantics, and release package remain unchanged.
+- [ ] 7.10 Add deterministic unit/browser coverage proving identical command/event/state/replay outcomes at `1×`, `2×`, and `4×`, safe mid-animation switching, pause/resume without duplicates, and usable controls at desktop and 640×360.

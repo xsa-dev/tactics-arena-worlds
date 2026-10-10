@@ -16,6 +16,7 @@ The current prototype requires a human to control the Survivor team, which preve
 - Provide an explicit human-control mode for development, accessibility testing, and the preserved human profile, while keeping OpenJEV autoplay as the default of the `ai-exhibition` profile.
 - Replace human-action onboarding with a mode-aware six-step autoplay variant in the AI exhibition profile while preserving the existing human onboarding and frozen study profile.
 - Define a presentation-idle integration seam, deterministic test injection, replayable accepted-command logs, vendor-data minimization, and release qualification for the proxy and external dependency.
+- Pace AI actions for comfortable observation at `1×` by default and expose `2×` and `4×` presentation-speed controls that never alter battle rules, command ordering, request budgets, or recorded outcomes.
 
 ## Capabilities
 

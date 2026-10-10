@@ -193,3 +193,30 @@ The system SHALL record a versioned replay envelope with build and scenario iden
 #### Scenario: AI analytics are exported
 - **WHEN** AI exhibition diagnostics are exported
 - **THEN** decision request, accepted decision, fallback, and circuit events are distinguishable and do not alter the semantics of existing human study events
+
+### Requirement: AI actions have observable adjustable presentation speed
+The AI exhibition SHALL start at `1×` presentation speed and SHALL offer touch-safe `1×`, `2×`, and `4×` controls. Speed SHALL affect only not-yet-started presentation delays, animation durations, and post-action observation gaps. It MUST NOT alter battle state, legal commands, command ordering, policy timeout, proxy circuit timing, action/request budgets, analytics timestamps, replay evidence, or terminal outcomes. Every speed SHALL preserve event order and the presentation-idle gate.
+
+#### Scenario: Default AI battle is observed
+- **WHEN** an AI exhibition starts without a speed selection
+- **THEN** it runs at `1×` and movement, attacks, damage or healing, phase changes, policy source, and terminal result remain readable
+
+#### Scenario: Viewer accelerates playback
+- **WHEN** the viewer selects `2×` or `4×`
+- **THEN** subsequent safe presentation segments and observation gaps are shortened while event order and the accepted command sequence remain unchanged
+
+#### Scenario: Equivalent battle runs at different speeds
+- **WHEN** the same recorded command sequence is presented at `1×`, `2×`, and `4×`
+- **THEN** all runs produce identical committed states, ordered event types, analytics semantics, replay envelope, and terminal outcome
+
+#### Scenario: Speed changes during an active animation
+- **WHEN** the viewer selects a new speed while an event animation is active
+- **THEN** the current event completes without seeking, duplication, or omission and the new speed applies no later than the next safe event boundary
+
+#### Scenario: Gameplay pauses at accelerated speed
+- **WHEN** a lifecycle blocker pauses gameplay at `2×` or `4×` and later resumes it
+- **THEN** autoplay and presentation remain stopped while blocked and resume once at the selected speed without duplicated or dropped actions
+
+#### Scenario: A new browser session starts
+- **WHEN** a fresh browser session enters the AI exhibition
+- **THEN** presentation speed defaults to `1×` regardless of the prior session while the selected speed may persist across replay within the current session

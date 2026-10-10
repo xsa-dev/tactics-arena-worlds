@@ -108,6 +108,14 @@ Autoplay ships in a separate `ai-exhibition` profile with its own onboarding fre
 
 Accepted-command diagnostics form a replay envelope containing schema version, build version, scenario identifier/hash, initial battle state hash, ordered accepted Survivor commands, decision source, and resulting event-type checksum. Replaying uses recorded accepted commands and the deterministic Raider engine without contacting OpenJEV. Stable analytics events distinguish `ai_decision_requested`, `ai_decision_accepted`, `ai_fallback_used`, and `ai_circuit_state_changed`; rendering does not emit them, and existing human study funnel semantics are not reinterpreted.
 
+### 13. Separate observable presentation speed from simulation and policy timing
+
+The AI exhibition starts at `1×`, tuned so movement paths, attacks, damage/heal feedback, phase changes, policy source, and terminal results remain readable without unnecessary dead time. The HUD exposes touch-safe `1×`, `2×`, and `4×` controls. A speed change affects only presentation delays, tweens, and the post-action observation gap for events not yet started. It SHALL NOT change battle state, command order, policy timeout, proxy retry/circuit timing, request or action budgets, analytics timestamps, or replay-envelope content.
+
+The next policy decision still waits for presentation idle at every speed. Changing speed during an active tween may apply at the next safe event boundary rather than seeking or skipping the current event. Pause and lifecycle blockers stop presentation and autoplay regardless of speed; resume continues at the selected speed without duplicating or dropping events. Result and replay controls remain readable and are never auto-dismissed. The selected speed lasts for the current browser session and resets to `1×` for a new session; it is presentation preference, not a release-mode override.
+
+Tests use the deterministic presentation clock to assert ordering and state equality across all speeds rather than wall-clock sleeps.
+
 ## Risks / Trade-offs
 
 - **[OpenJEV latency makes turns feel stalled]** → Show a deciding indicator, impose a short timeout, abort stale requests, and fall back locally.
@@ -120,6 +128,7 @@ Accepted-command diagnostics form a replay envelope containing schema version, b
 - **[Anonymous clients abuse the public proxy]** → Apply layered token buckets, concurrency/request caps, a global budget breaker, origin checks, and emergency disable while treating CORS only as browser containment.
 - **[Autoplay invalidates the frozen human cohort]** → Ship it as a separate qualified `ai-exhibition` profile and leave the accepted human profile and analytics cohort unchanged.
 - **[Committed state advances ahead of animation]** → Gate every new request on the explicit presentation-idle seam and fingerprint the displayed/committed snapshot.
+- **[Fast playback hides important tactical feedback]** → Keep `1×` as the default, provide only bounded `2×`/`4×` options, preserve event order and minimum readable phase/result indicators, and test at desktop and 640×360.
 
 ## Migration Plan
 
