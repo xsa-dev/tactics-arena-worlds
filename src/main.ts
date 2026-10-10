@@ -27,6 +27,7 @@ import type {
   HelpType,
 } from "./platform/battle-session";
 import { selectTesterIdentity } from "./platform/operator";
+import { createBootstrapDependencies } from "./bootstrap";
 
 declare global {
   interface Window {
@@ -138,7 +139,12 @@ async function start(): Promise<void> {
     viewport: `${innerWidth}x${innerHeight}`,
     locale: language,
   };
-  const runtime = new GameRuntime(platform, language, context);
+  const dependencies = createBootstrapDependencies(
+    ACTIVE_RELEASE_CONFIG.survivor.mode,
+  );
+  const runtime = new GameRuntime(platform, language, context, dependencies, {
+    survivor: ACTIVE_RELEASE_CONFIG.survivor,
+  });
   runtime.markReady("platform");
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -165,17 +171,36 @@ async function start(): Promise<void> {
   const attack = $<HTMLButtonElement>("attack-action");
   const ability = $<HTMLButtonElement>("ability-action");
   const endTurn = $<HTMLButtonElement>("end-turn");
+  const aiStatus = $("ai-status");
+  const aiSpeed = $("ai-speed");
+  const aiSpeedLabel = $("ai-speed-label");
+  const speedButtons = [
+    [$("speed-1"), 1],
+    [$("speed-2"), 2],
+    [$("speed-4"), 4],
+  ] as const;
   move.textContent = t(language, "action.move");
   attack.textContent = t(language, "action.attack");
   endTurn.textContent = t(language, "action.endTurn");
+  const isAi = ACTIVE_RELEASE_CONFIG.survivor.mode === "openjev";
+  aiStatus.textContent = isAi ? t(language, "ai.status") : "";
+  aiSpeed.classList.toggle("hidden", !isAi);
+  aiSpeedLabel.textContent = t(language, "ai.speed");
+  for (const [button, value] of speedButtons) {
+    button.textContent = t(language, `ai.speed.${value}` as Parameters<typeof t>[1]);
+    button.setAttribute("aria-label", `${t(language, "ai.speed")} ${value}×`);
+    button.addEventListener("click", () => {
+      runtime.presentationClock.setSpeed(value);
+      sessionStorage.setItem("tactics-ai-speed", String(value));
+      renderSpeed();
+    });
+  }
   $("rules").setAttribute("aria-label", t(language, "action.rules"));
   $("onboarding-title").textContent = t(language, "onboarding.title");
   $("onboarding-list").innerHTML = [1, 2, 3, 4, 5, 6]
     .map((index) => {
-      const copy = t(
-        language,
-        `onboarding.${index}` as Parameters<typeof t>[1],
-      );
+      const key = isAi ? `onboarding.ai.${index}` : `onboarding.${index}`;
+      const copy = t(language, key as Parameters<typeof t>[1]);
       if (index !== 5) return `<li>${copy}</li>`;
       return `<li class="ability-briefing">${copy
         .split("; ")
@@ -243,6 +268,11 @@ async function start(): Promise<void> {
       );
   };
   runtime.subscribe(renderDom);
+  const renderSpeed = () => {
+    for (const [button, value] of speedButtons)
+      button.classList.toggle("active", runtime.presentationClock.multiplier === value);
+  };
+  renderSpeed();
   renderDom();
   runtime.markReady("overlays");
 

@@ -14,6 +14,10 @@
     "catalog-release": {
       "adPolicy": "post_battle_fullscreen",
       "publicationEligible": true
+    },
+    "ai-exhibition": {
+      "adPolicy": "disabled_for_study",
+      "publicationEligible": false
     }
   },
   "languages": ["en", "ru"],

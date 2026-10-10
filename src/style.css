@@ -59,6 +59,22 @@ body {
 #feedback:empty {
   display: none;
 }
+.ai-status,
+.ai-speed {
+  margin-top: 4px;
+  padding: 3px 5px;
+  background: rgba(7, 10, 11, 0.82);
+  border-radius: 4px;
+}
+.ai-speed.hidden {
+  display: none;
+}
+.ai-speed button {
+  min-width: 42px;
+  min-height: 32px;
+  margin-left: 3px;
+  padding: 2px 5px;
+}
 #game-controls {
   position: absolute;
   z-index: 8;

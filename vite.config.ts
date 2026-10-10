@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => {
   const releaseProfile =
     loadEnv(mode, ".", "").RELEASE_PROFILE ?? "study-draft";
   if (
-    !(["study-draft", "catalog-release"] as const).includes(
+    !(["study-draft", "catalog-release", "ai-exhibition"] as const).includes(
       releaseProfile as never,
     )
   )

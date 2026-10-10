@@ -1,10 +1,10 @@
 ## 1. Security and configuration foundation
 
 - [ ] 1.1 Revoke the previously disclosed OpenJEV credential and document that implementation and CI require a newly provisioned server-side `OPENJEV_API_KEY`.
-- [ ] 1.2 Add typed Survivor control configuration for `openjev` and `human`, with `openjev` as the `ai-exhibition` profile default and explicit immutable proxy URL, timeout, pacing, and per-phase action-cap settings.
+- [x] 1.2 Add typed Survivor control configuration for `openjev` and `human`, with `openjev` as the `ai-exhibition` profile default and explicit immutable proxy URL, timeout, pacing, and per-phase action-cap settings.
 - [ ] 1.3 Add release and test guards that fail if an OpenJEV key or bearer token pattern appears in tracked files, generated browser assets, logs, or the release archive.
-- [ ] 1.4 Add a separate immutable `ai-exhibition` release profile with versioned HTTPS proxy endpoint, contract version, origin allowlist, vendor declaration, and no runtime query/local-storage overrides; preserve the existing human profile unchanged.
-- [ ] 1.5 Define typed bootstrap dependency injection for control mode, `SurvivorPolicy`, proxy transport, deterministic clock, and deferred test responses.
+- [x] 1.4 Add a separate immutable `ai-exhibition` release profile with versioned HTTPS proxy endpoint, contract version, origin allowlist, vendor declaration, and no runtime query/local-storage overrides; preserve the existing human profile unchanged.
+- [x] 1.5 Define typed bootstrap dependency injection for control mode, `SurvivorPolicy`, proxy transport, deterministic clock, and deferred test responses.
 
 ## 2. Legal command candidates and deterministic fallback
 
@@ -48,11 +48,11 @@
 
 ## 6. Presentation and diagnostics
 
-- [ ] 6.1 Add localized HUD states for OpenJEV deciding, OpenJEV action, deterministic fallback, paused autoplay, and unavailable proxy in Russian and English.
-- [ ] 6.2 Keep global rules, pause/lifecycle, language, result, and replay controls available while automated board commands are disabled.
+- [x] 6.1 Add localized HUD states for OpenJEV deciding, OpenJEV action, deterministic fallback, paused autoplay, and unavailable proxy in Russian and English.
+- [x] 6.2 Keep global rules, pause/lifecycle, language, result, and replay controls available while automated board commands are disabled.
 - [ ] 6.3 Emit JSON-safe decision diagnostics containing battle ID, round, state fingerprint, candidate ID, source, latency bucket, bounded fallback reason, and accepted event types.
 - [ ] 6.4 Add localization completeness and diagnostics redaction tests that reject credentials, authorization headers, raw upstream errors, and private reasoning fields.
-- [ ] 6.5 Create a separate localized six-step AI exhibition onboarding freeze for RU/EN and 640×360 that preserves ability teaching while explaining observation, policy/fallback status, pause/rules, and replay.
+- [x] 6.5 Create a separate localized six-step AI exhibition onboarding freeze for RU/EN and 640×360 that preserves ability teaching while explaining observation, policy/fallback status, pause/rules, and replay.
 - [ ] 6.6 Define stable AI-specific analytics events without changing the existing human study funnel semantics.
 - [ ] 6.7 Implement the versioned replay envelope and verify offline replay of accepted Survivor commands plus deterministic Raider phases against terminal state and event checksum.
 - [ ] 6.8 Add localized touch-safe speed controls and labels, default `1×`, current-session persistence across replay, fresh-session reset, and minimum-readable phase/policy/result indicators at `4×`.

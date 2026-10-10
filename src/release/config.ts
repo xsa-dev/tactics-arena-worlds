@@ -1,4 +1,9 @@
-export type ReleaseProfile = "study-draft" | "catalog-release";
+import type { SurvivorPolicyConfig } from "../survivor/policy";
+
+export type ReleaseProfile =
+  | "study-draft"
+  | "catalog-release"
+  | "ai-exhibition";
 export type AdPolicy = "disabled_for_study" | "post_battle_fullscreen";
 
 export interface ReleaseDeclarations {
@@ -21,6 +26,16 @@ export interface ReleaseConfig {
   readonly replayFreezeId: string;
   readonly analyticsSchemaVersion: number;
   readonly declarations: ReleaseDeclarations;
+  readonly survivor: Readonly<SurvivorPolicyConfig>;
+  readonly aiExhibition: Readonly<AiExhibitionDeclarations>;
+}
+
+export interface AiExhibitionDeclarations {
+  readonly proxyUrl: string;
+  readonly contractVersion: "v1";
+  readonly allowedOrigins: readonly string[];
+  readonly vendor: "openjev";
+  readonly disclosure: "external-ai-with-deterministic-fallback";
 }
 
 export const RELEASE_CONSTANTS = {
@@ -38,6 +53,35 @@ const NO_PROGRESSION: ReleaseDeclarations = {
   unlocks: false,
 };
 
+const AI_EXHIBITION: AiExhibitionDeclarations = Object.freeze({
+  proxyUrl: "https://proxy.tactics-arena.example/v1/openjev/choose",
+  contractVersion: "v1",
+  allowedOrigins: Object.freeze(["https://yandex.ru", "https://games.yandex.ru"]),
+  vendor: "openjev",
+  disclosure: "external-ai-with-deterministic-fallback",
+});
+
+const SURVIVOR_PROFILES: Record<ReleaseProfile, Readonly<SurvivorPolicyConfig>> = {
+  "study-draft": Object.freeze({
+    mode: "human",
+    proxyUrl: "",
+    timeoutMs: 5_000,
+    maxActionsPerPhase: 12,
+  }),
+  "catalog-release": Object.freeze({
+    mode: "human",
+    proxyUrl: "",
+    timeoutMs: 5_000,
+    maxActionsPerPhase: 12,
+  }),
+  "ai-exhibition": Object.freeze({
+    mode: "openjev",
+    proxyUrl: AI_EXHIBITION.proxyUrl,
+    timeoutMs: 5_000,
+    maxActionsPerPhase: 12,
+  }),
+};
+
 export function createReleaseConfig(
   profile: string | undefined,
   overrides: Partial<
@@ -47,7 +91,11 @@ export function createReleaseConfig(
     >
   > = {},
 ): ReleaseConfig {
-  if (profile !== "study-draft" && profile !== "catalog-release")
+  if (
+    profile !== "study-draft" &&
+    profile !== "catalog-release" &&
+    profile !== "ai-exhibition"
+  )
     throw new Error(
       `Unknown or missing release profile: ${profile ?? "<missing>"}`,
     );
@@ -67,6 +115,14 @@ export function createReleaseConfig(
     ...freezes,
     analyticsSchemaVersion: RELEASE_CONSTANTS.analyticsSchemaVersion,
     declarations: Object.freeze({ ...NO_PROGRESSION }),
+    survivor: SURVIVOR_PROFILES[profile],
+    aiExhibition: profile === "ai-exhibition" ? AI_EXHIBITION : Object.freeze({
+      proxyUrl: "",
+      contractVersion: "v1",
+      allowedOrigins: Object.freeze([]),
+      vendor: "openjev",
+      disclosure: "external-ai-with-deterministic-fallback",
+    }),
   });
 }
 
