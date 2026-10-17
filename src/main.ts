@@ -36,6 +36,8 @@ import type {
 } from "./solana/types";
 import type { SolanaWalletCoordinator } from "./solana/wallet-coordinator";
 
+declare const __RELEASE_PROFILE__: string | undefined;
+
 declare global {
   interface Window {
     YaGames?: { init(): Promise<YandexSdk> };
@@ -224,7 +226,11 @@ async function start(): Promise<void> {
   let walletCoordinator: SolanaWalletCoordinator | null = null;
   let lastCachedBattleId = "";
 
-  if (isSolanaMobile) {
+  if (
+    typeof __RELEASE_PROFILE__ !== "undefined" &&
+    __RELEASE_PROFILE__ === "solana-mobile" &&
+    isSolanaMobile
+  ) {
     const solanaModule = await import("./solana/wallet-coordinator");
     void solanaModule
       .registerSolanaMobileWalletAdapter(
