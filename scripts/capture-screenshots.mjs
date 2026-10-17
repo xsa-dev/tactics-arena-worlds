@@ -226,9 +226,16 @@ async function captureActionScene(name, viewport, language) {
   await page.waitForFunction(() =>
     window.__TACTICS__.eventNames().includes("battle_started"),
   );
-  await page.waitForTimeout(1150);
-  await page.locator("#ability-action").click();
-  await page.waitForTimeout(250);
+  const canvas = page.locator("canvas");
+  await canvas.waitFor({ state: "visible" });
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("Canvas did not render");
+  const scale = box.width / 960;
+  await page.mouse.click(
+    box.x + (20 + 33) * scale,
+    box.y + (66 + 66 * 3 + 33) * scale,
+  );
+  await page.waitForTimeout(300);
   await page.screenshot({
     path: `artifacts/screenshots/${name}.png`,
     fullPage: true,
