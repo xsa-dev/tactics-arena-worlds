@@ -12,7 +12,7 @@ The system SHALL support a `solana-mobile` release profile with `sdkEnabled=fals
 - **THEN** existing Yandex SDK loader rules, freeze identifiers, and zero-external-host archive validations remain in force
 
 ### Requirement: Interactive control mode and locale toggles fit 640×360 landscape and preserve runtime invariants
-In the `solana-mobile` profile, the HUD SHALL expose touch-safe (`>= 44×44` CSS pixels) controls in a top-right toolbar (`#top-controls`) to switch between `Human` and `AI Autoplay` control modes and between `en` and `ru` locales without reloading the page, and SHALL place `1×`, `2×`, and `4×` speed buttons (`>= 44×44` CSS pixels) in a non-overlapping bottom-left bar (`#ai-speed`) so `640×360` landscape has no page scroll or board/roster occlusion. When `proxyUrl` is empty in `solana-mobile`, `AI Autoplay` SHALL use `DeterministicSurvivorPolicy` offline without making network requests.
+In the `solana-mobile` profile, the HUD SHALL expose touch-safe (`>= 44×44` CSS pixels) controls in a top-right toolbar (`#top-controls`) to switch between `Human` and `AI Autoplay` control modes and between `en` and `ru` locales without reloading the page, and SHALL place `0.25×`, `0.5×`, `1×`, `2×`, and `4×` speed buttons (`>= 44×44` CSS pixels) in a non-overlapping bottom-left bar (`#ai-speed`) so `640×360` landscape has no page scroll or board/roster occlusion. When `proxyUrl` is empty in `solana-mobile`, `AI Autoplay` SHALL use `DeterministicSurvivorPolicy` offline without making network requests.
 
 #### Scenario: Player switches from Human to AI Autoplay mid-battle
 - **WHEN** the player activates the AI Autoplay toggle during an active player phase in `solana-mobile`

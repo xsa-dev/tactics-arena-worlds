@@ -261,7 +261,8 @@ button.icon-button {
     font-size: 12px;
   }
   .ai-speed {
-    padding: 0 2px;
+    left: 4px;
+    padding: 0;
     gap: 2px;
   }
   .ai-speed span {
@@ -271,9 +272,11 @@ button.icon-button {
     min-width: 44px;
     min-height: 44px;
     flex: 0 0 44px;
+    padding: 2px 3px;
+    font-size: 12px;
   }
   #game-controls {
-    left: 32%;
+    left: 36.5%;
     right: 4px;
     gap: 2px;
   }

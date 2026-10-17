@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocalPlatformService } from "../../src/platform";
-import { GameRuntime } from "../../src/presentation/runtime";
+import { GameRuntime, PresentationClock } from "../../src/presentation/runtime";
 
 const context = {
   sessionId: "bootstrap",
@@ -142,5 +142,20 @@ describe("runtime UI lifecycle blockers", () => {
     runtime.setControlMode("human");
     expect(runtime.controlMode).toBe("human");
     expect(runtime.session.controlMode).toBe("hybrid");
+
+    // Verify PresentationClock slow-motion (0.25x, 0.5x) and fast-forward (1x, 2x, 4x) multipliers
+    const clock = new PresentationClock();
+    expect(clock.multiplier).toBe(1);
+    expect(clock.duration(400)).toBe(400);
+    clock.multiplier = 0.5;
+    expect(clock.multiplier).toBe(0.5);
+    expect(clock.duration(400)).toBe(800);
+    clock.multiplier = 0.25;
+    expect(clock.multiplier).toBe(0.25);
+    expect(clock.duration(400)).toBe(1600);
+    clock.multiplier = 2;
+    expect(clock.duration(400)).toBe(200);
+    clock.multiplier = 4;
+    expect(clock.duration(400)).toBe(100);
   });
 });

@@ -158,13 +158,25 @@ test("Solana Mobile profile at 640x360 supports live mode/locale switching, wall
     "Proof Valid",
   );
 
-  // Replay and switch to AI Autoplay with 44x44 speed buttons
+  // Replay and switch to AI Autoplay with 44x44 speed buttons (including 0.25x and 0.5x slow-motion)
   await page.locator("#replay").click();
   await page.locator("#mode-toggle").click();
   await expect(page.locator("#ai-speed")).toBeVisible();
-  const speed1Box = await page.locator("#speed-1").boundingBox();
-  expect(speed1Box!.width).toBeGreaterThanOrEqual(44);
-  expect(speed1Box!.height).toBeGreaterThanOrEqual(44);
+  for (const id of [
+    "#speed-0-25",
+    "#speed-0-5",
+    "#speed-1",
+    "#speed-2",
+    "#speed-4",
+  ]) {
+    const box = await page.locator(id).boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.locator("#speed-0-5").click();
+  await expect(page.locator("#speed-0-5")).toHaveClass(/active/);
+  await page.locator("#speed-0-25").click();
+  await expect(page.locator("#speed-0-25")).toHaveClass(/active/);
   await page.locator("#speed-4").click();
   await expect
     .poll(async () => page.evaluate(() => window.__TACTICS__.snapshot().round))

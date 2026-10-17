@@ -122,6 +122,22 @@ export class BattleScene extends Phaser.Scene {
 
     for (const unit of state.units)
       this.drawUnit(unit, legalTargets.has(unit.id));
+    if (this.runtime.activeActorId && this.runtime.activeTargetId) {
+      const actor = state.units.find(
+        ({ id }) => id === this.runtime.activeActorId,
+      );
+      const target = state.units.find(
+        ({ id }) => id === this.runtime.activeTargetId,
+      );
+      if (actor && target) {
+        const ax = BOARD_X + actor.position.x * CELL + CELL / 2;
+        const ay = BOARD_Y + actor.position.y * CELL + CELL / 2;
+        const tx = BOARD_X + target.position.x * CELL + CELL / 2;
+        const ty = BOARD_Y + target.position.y * CELL + CELL / 2;
+        graphics.lineStyle(4, 0xf3c55e, 0.88).lineBetween(ax, ay, tx, ty);
+        graphics.lineStyle(4, 0xff5e49, 0.95).strokeCircle(tx, ty, 32);
+      }
+    }
     graphics.fillStyle(0x101719, 0.92).fillRoundedRect(566, 72, 374, 330, 8);
     graphics.lineStyle(2, 0x697579, 1).strokeRoundedRect(566, 72, 374, 330, 8);
     this.addLabel(588, 92, "WASTELAND // SECTOR 08-06", 21, "#93a2a7");
@@ -156,9 +172,11 @@ export class BattleScene extends Phaser.Scene {
     const graphics = this.layer.list[0] as Phaser.GameObjects.Graphics;
     const cx = BOARD_X + unit.position.x * CELL + CELL / 2;
     const cy = BOARD_Y + unit.position.y * CELL + CELL / 2;
-    const selected = unit.id === this.runtime.selectedId;
-    if (legalTarget)
-      graphics.lineStyle(5, 0xff5e49, 1).strokeCircle(cx, cy, 29);
+    const selected =
+      unit.id === this.runtime.selectedId ||
+      unit.id === this.runtime.activeActorId;
+    const targeted = legalTarget || unit.id === this.runtime.activeTargetId;
+    if (targeted) graphics.lineStyle(5, 0xff5e49, 1).strokeCircle(cx, cy, 29);
     if (selected) graphics.lineStyle(5, 0x63ddff, 1).strokeCircle(cx, cy, 31);
     graphics
       .fillStyle(unit.team === "survivor" ? 0x4f9aac : 0xa64a37, 1)

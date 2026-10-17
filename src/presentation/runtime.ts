@@ -42,7 +42,7 @@ import type {
 } from "../survivor/policy";
 
 export type ActionMode = "move" | "attack" | "ability";
-export type AutoplaySpeed = 1 | 2 | 4;
+export type AutoplaySpeed = 0.25 | 0.5 | 1 | 2 | 4;
 
 export interface GameRuntimeOptions {
   survivor?: Partial<SurvivorPolicyConfig> & { policy?: SurvivorPolicy };
@@ -58,13 +58,22 @@ export class PresentationClock {
     return this.speed;
   }
   set multiplier(value: AutoplaySpeed) {
-    this.speed = value === 4 ? 4 : value === 2 ? 2 : 1;
+    this.speed =
+      value === 0.25
+        ? 0.25
+        : value === 0.5
+          ? 0.5
+          : value === 4
+            ? 4
+            : value === 2
+              ? 2
+              : 1;
   }
   duration(baseMs: number): number {
     return Math.max(1, Math.round(baseMs / this.speed));
   }
   setSpeed(value: AutoplaySpeed): void {
-    this.speed = value;
+    this.multiplier = value;
   }
 }
 
@@ -88,6 +97,8 @@ export class GameRuntime {
   readonly gameplay: GameplayCoordinator;
   displayState: BattleState;
   selectedId: string | null = null;
+  activeActorId: string | null = null;
+  activeTargetId: string | null = null;
   actionMode: ActionMode = "move";
   feedback = "";
   locked = false;
@@ -219,6 +230,8 @@ export class GameRuntime {
     this.cancelAutoplay();
     this.survivorMode = mode;
     this.selectedId = null;
+    this.activeActorId = null;
+    this.activeTargetId = null;
     this.actionMode = "move";
     this.feedback = "";
     this.observations.setControlMode(mode);
@@ -379,9 +392,15 @@ export class GameRuntime {
       this.pendingFinal = structuredClone(result.state);
       this.lifecycle.enqueue(result.events);
       this.locked = true;
+      this.activeActorId = null;
+      this.activeTargetId = null;
       this.feedback = t(this.language, "feedback.enemy");
     } else {
       this.displayState = structuredClone(result.state);
+      this.activeActorId = "unitId" in command ? command.unitId : null;
+      this.activeTargetId = "targetId" in command ? command.targetId : null;
+      if (this.autoplayActive && "unitId" in command)
+        this.selectedId = command.unitId;
       this.feedback = this.describeEvents(result.events);
       if (!this.displayState.units.some(({ id }) => id === this.selectedId))
         this.selectedId = null;
@@ -445,7 +464,7 @@ export class GameRuntime {
         if (epoch === this.autoplayEpoch) {
           this.autoplayInFlight = false;
           this.autoplayController = null;
-          this.nextAutoplayAt = time + this.presentationClock.duration(220);
+          this.nextAutoplayAt = time + this.presentationClock.duration(400);
           this.notify();
         }
       });
@@ -466,7 +485,7 @@ export class GameRuntime {
     if (
       this.locked &&
       !this.lifecycle.isPaused &&
-      time - this.lastPresentedAt >= this.presentationClock.duration(180)
+      time - this.lastPresentedAt >= this.presentationClock.duration(360)
     ) {
       const event = this.lifecycle.takeNext();
       if (event) {
@@ -484,6 +503,8 @@ export class GameRuntime {
         this.locked = false;
         this.autoplayDecisions = 0;
         this.selectedId = null;
+        this.activeActorId = null;
+        this.activeTargetId = null;
         this.feedback = "";
         this.notify();
       }
@@ -495,14 +516,20 @@ export class GameRuntime {
     const unit = (id: string) =>
       this.displayState.units.find((candidate) => candidate.id === id);
     if (event.type === "unit-moved") {
+      this.activeActorId = event.unitId;
+      this.activeTargetId = null;
       const found = unit(event.unitId);
       if (found) found.position = { ...event.to };
     }
     if (event.type === "unit-damaged") {
+      this.activeActorId = event.sourceId;
+      this.activeTargetId = event.targetId;
       const found = unit(event.targetId);
       if (found) found.hp = Math.max(0, found.hp - event.amount);
     }
     if (event.type === "unit-healed") {
+      this.activeActorId = event.sourceId;
+      this.activeTargetId = event.targetId;
       const found = unit(event.targetId);
       if (found) found.hp = Math.min(found.maxHp, found.hp + event.amount);
     }
@@ -558,6 +585,8 @@ export class GameRuntime {
     this.displayState = structuredClone(this.session.state);
     this.pendingFinal = null;
     this.selectedId = null;
+    this.activeActorId = null;
+    this.activeTargetId = null;
     this.actionMode = "move";
     this.autoplayDecisions = 0;
     this.nextAutoplayAt = 0;

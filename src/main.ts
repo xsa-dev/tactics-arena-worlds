@@ -212,6 +212,8 @@ async function start(): Promise<void> {
   const aiSpeed = $("ai-speed");
   const aiSpeedLabel = $("ai-speed-label");
   const speedButtons = [
+    [$("speed-0-25"), 0.25],
+    [$("speed-0-5"), 0.5],
     [$("speed-1"), 1],
     [$("speed-2"), 2],
     [$("speed-4"), 4],
@@ -304,7 +306,7 @@ async function start(): Promise<void> {
     attack.textContent = t(lang, "action.attack");
     endTurn.textContent = t(lang, "action.endTurn");
     aiStatus.textContent = isAi ? t(lang, "ai.status") : "";
-    aiSpeed.classList.toggle("hidden", !isAi);
+    aiSpeed.classList.toggle("hidden", !isAi && !isSolanaMobile);
     aiSpeedLabel.textContent = t(lang, "ai.speed");
     for (const [button, value] of speedButtons) {
       button.textContent = t(
