@@ -226,6 +226,7 @@ async function captureActionScene(name, viewport, language) {
   await page.waitForFunction(() =>
     window.__TACTICS__.eventNames().includes("battle_started"),
   );
+  await page.waitForTimeout(1150);
   await page.locator("#ability-action").click();
   await page.waitForTimeout(250);
   await page.screenshot({
