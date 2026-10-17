@@ -106,6 +106,12 @@ describe("runtime UI lifecycle blockers", () => {
     runtime.handleCell({ x: 1, y: 1 });
     expect(runtime.session.acceptedCommands).toHaveLength(1);
     expect(runtime.session.controlMode).toBe("human");
+    expect(runtime.lastEffect).toMatchObject({
+      kind: "move",
+      unitId: "survivor-scout",
+      from: { x: 0, y: 1 },
+      to: { x: 1, y: 1 },
+    });
 
     // Switch to AI Autoplay mid-battle: clears selection, marks session hybrid, and uses offline fallback without fetch
     runtime.setControlMode("openjev");

@@ -44,6 +44,18 @@ import type {
 export type ActionMode = "move" | "attack" | "ability";
 export type AutoplaySpeed = 0.25 | 0.5 | 1 | 2 | 4;
 
+export interface PresentationEffect {
+  readonly id: number;
+  readonly kind: "move" | "attack" | "heal";
+  readonly unitId: string;
+  readonly from: Position;
+  readonly to: Position;
+  readonly targetId?: string;
+  readonly amount?: number;
+  readonly coverMitigated?: boolean;
+  readonly durationMs: number;
+}
+
 export interface GameRuntimeOptions {
   survivor?: Partial<SurvivorPolicyConfig> & { policy?: SurvivorPolicy };
   autoplaySpeed?: AutoplaySpeed;
@@ -99,6 +111,8 @@ export class GameRuntime {
   selectedId: string | null = null;
   activeActorId: string | null = null;
   activeTargetId: string | null = null;
+  lastEffect: PresentationEffect | null = null;
+  private effectSeq = 0;
   actionMode: ActionMode = "move";
   feedback = "";
   locked = false;
@@ -232,6 +246,7 @@ export class GameRuntime {
     this.selectedId = null;
     this.activeActorId = null;
     this.activeTargetId = null;
+    this.lastEffect = null;
     this.actionMode = "move";
     this.feedback = "";
     this.observations.setControlMode(mode);
@@ -394,11 +409,13 @@ export class GameRuntime {
       this.locked = true;
       this.activeActorId = null;
       this.activeTargetId = null;
+      this.lastEffect = null;
       this.feedback = t(this.language, "feedback.enemy");
     } else {
       this.displayState = structuredClone(result.state);
       this.activeActorId = "unitId" in command ? command.unitId : null;
       this.activeTargetId = "targetId" in command ? command.targetId : null;
+      this.recordCommandEffect(before, result.events);
       if (this.autoplayActive && "unitId" in command)
         this.selectedId = command.unitId;
       this.feedback = this.describeEvents(result.events);
@@ -505,11 +522,69 @@ export class GameRuntime {
         this.selectedId = null;
         this.activeActorId = null;
         this.activeTargetId = null;
+        this.lastEffect = null;
         this.feedback = "";
         this.notify();
       }
     }
     this.maybeAutoplay(time);
+  }
+
+  private recordCommandEffect(
+    before: BattleState,
+    events: readonly BattleEvent[],
+  ): void {
+    const unitBefore = (id: string) =>
+      before.units.find((candidate) => candidate.id === id);
+    for (const event of events) {
+      if (event.type === "unit-moved") {
+        const actor = unitBefore(event.unitId);
+        if (actor) {
+          this.effectSeq += 1;
+          this.lastEffect = {
+            id: this.effectSeq,
+            kind: "move",
+            unitId: event.unitId,
+            from: { ...actor.position },
+            to: { ...event.to },
+            durationMs: this.presentationClock.duration(340),
+          };
+        }
+      } else if (event.type === "unit-damaged") {
+        const actor = unitBefore(event.sourceId);
+        const target = unitBefore(event.targetId);
+        if (actor && target) {
+          this.effectSeq += 1;
+          this.lastEffect = {
+            id: this.effectSeq,
+            kind: "attack",
+            unitId: event.sourceId,
+            from: { ...actor.position },
+            to: { ...target.position },
+            targetId: event.targetId,
+            amount: event.amount,
+            coverMitigated: event.coverMitigated,
+            durationMs: this.presentationClock.duration(340),
+          };
+        }
+      } else if (event.type === "unit-healed") {
+        const actor = unitBefore(event.sourceId);
+        const target = unitBefore(event.targetId);
+        if (actor && target) {
+          this.effectSeq += 1;
+          this.lastEffect = {
+            id: this.effectSeq,
+            kind: "heal",
+            unitId: event.sourceId,
+            from: { ...actor.position },
+            to: { ...target.position },
+            targetId: event.targetId,
+            amount: event.amount,
+            durationMs: this.presentationClock.duration(340),
+          };
+        }
+      }
+    }
   }
 
   private applyPresentation(event: BattleEvent): void {
@@ -519,18 +594,59 @@ export class GameRuntime {
       this.activeActorId = event.unitId;
       this.activeTargetId = null;
       const found = unit(event.unitId);
-      if (found) found.position = { ...event.to };
+      if (found) {
+        const from = { ...found.position };
+        found.position = { ...event.to };
+        this.effectSeq += 1;
+        this.lastEffect = {
+          id: this.effectSeq,
+          kind: "move",
+          unitId: event.unitId,
+          from,
+          to: { ...event.to },
+          durationMs: this.presentationClock.duration(320),
+        };
+      }
     }
     if (event.type === "unit-damaged") {
       this.activeActorId = event.sourceId;
       this.activeTargetId = event.targetId;
+      const actor = unit(event.sourceId);
       const found = unit(event.targetId);
+      if (actor && found) {
+        this.effectSeq += 1;
+        this.lastEffect = {
+          id: this.effectSeq,
+          kind: "attack",
+          unitId: event.sourceId,
+          from: { ...actor.position },
+          to: { ...found.position },
+          targetId: event.targetId,
+          amount: event.amount,
+          coverMitigated: event.coverMitigated,
+          durationMs: this.presentationClock.duration(320),
+        };
+      }
       if (found) found.hp = Math.max(0, found.hp - event.amount);
     }
     if (event.type === "unit-healed") {
       this.activeActorId = event.sourceId;
       this.activeTargetId = event.targetId;
+      const actor = unit(event.sourceId);
       const found = unit(event.targetId);
+      if (actor && found) {
+        this.effectSeq += 1;
+        this.lastEffect = {
+          id: this.effectSeq,
+          kind: "heal",
+          unitId: event.sourceId,
+          from: { ...actor.position },
+          to: { ...found.position },
+          targetId: event.targetId,
+          amount: event.amount,
+          durationMs: this.presentationClock.duration(320),
+        };
+      }
       if (found) found.hp = Math.min(found.maxHp, found.hp + event.amount);
     }
     if (event.type === "unit-defeated")
@@ -587,6 +703,7 @@ export class GameRuntime {
     this.selectedId = null;
     this.activeActorId = null;
     this.activeTargetId = null;
+    this.lastEffect = null;
     this.actionMode = "move";
     this.autoplayDecisions = 0;
     this.nextAutoplayAt = 0;

@@ -2,11 +2,19 @@ import Phaser from "phaser";
 import { isHalfCover, isWall } from "../core/grid";
 import type { Position, Unit } from "../core/types";
 import { t } from "../localization";
-import type { GameRuntime } from "./runtime";
+import type { GameRuntime, PresentationEffect } from "./runtime";
 
 const BOARD_X = 20;
 const BOARD_Y = 66;
 const CELL = 66;
+
+const cellCenter = (pos: Position): { x: number; y: number } => ({
+  x: BOARD_X + pos.x * CELL + CELL / 2,
+  y: BOARD_Y + pos.y * CELL + CELL / 2,
+});
+
+const easeOutCubic = (tVal: number): number =>
+  1 - Math.pow(1 - Math.min(1, Math.max(0, tVal)), 3);
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +28,9 @@ export class BootScene extends Phaser.Scene {
 export class BattleScene extends Phaser.Scene {
   private layer?: Phaser.GameObjects.Container;
   private unsubscribe?: () => void;
+  private activeEffect: PresentationEffect | null = null;
+  private effectStartedAt = 0;
+  private lastTime = 0;
 
   constructor(private readonly runtime: GameRuntime) {
     super("battle");
@@ -34,7 +45,18 @@ export class BattleScene extends Phaser.Scene {
         if (x >= 0 && x < 8 && y >= 0 && y < 6)
           this.runtime.handleCell({ x, y });
       });
-      this.unsubscribe = this.runtime.subscribe(() => this.draw());
+      this.unsubscribe = this.runtime.subscribe(() => {
+        if (
+          this.runtime.lastEffect &&
+          this.runtime.lastEffect.id !== this.activeEffect?.id
+        ) {
+          this.activeEffect = this.runtime.lastEffect;
+          this.effectStartedAt = this.lastTime;
+        } else if (!this.runtime.lastEffect) {
+          this.activeEffect = null;
+        }
+        this.draw();
+      });
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
         this.unsubscribe?.(),
       );
@@ -46,10 +68,20 @@ export class BattleScene extends Phaser.Scene {
   }
 
   update(time: number): void {
+    this.lastTime = time;
     this.runtime.update(time);
+    if (this.activeEffect) {
+      const elapsed = time - this.effectStartedAt;
+      if (elapsed <= this.activeEffect.durationMs) {
+        this.draw(elapsed / Math.max(1, this.activeEffect.durationMs));
+      } else {
+        this.activeEffect = null;
+        this.draw();
+      }
+    }
   }
 
-  private draw(): void {
+  private draw(effectProgress = 1): void {
     this.layer?.destroy(true);
     this.layer = this.add.container(0, 0);
     const graphics = this.add.graphics();
@@ -120,9 +152,24 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
+    const effect = this.activeEffect;
+    if (effect && effectProgress < 1 && effect.kind === "move") {
+      const fromPt = cellCenter(effect.from);
+      const toPt = cellCenter(effect.to);
+      graphics
+        .lineStyle(3, 0x63ddff, 0.55 * (1 - effectProgress))
+        .lineBetween(fromPt.x, fromPt.y, toPt.x, toPt.y);
+      graphics
+        .fillStyle(0x63ddff, 0.3 * (1 - effectProgress))
+        .fillCircle(fromPt.x, fromPt.y, 12);
+    }
+
     for (const unit of state.units)
-      this.drawUnit(unit, legalTargets.has(unit.id));
-    if (this.runtime.activeActorId && this.runtime.activeTargetId) {
+      this.drawUnit(unit, legalTargets.has(unit.id), effectProgress);
+
+    if (effect && effectProgress < 1) {
+      this.drawEffectOverlay(graphics, effect, effectProgress);
+    } else if (this.runtime.activeActorId && this.runtime.activeTargetId) {
       const actor = state.units.find(
         ({ id }) => id === this.runtime.activeActorId,
       );
@@ -134,10 +181,10 @@ export class BattleScene extends Phaser.Scene {
         const ay = BOARD_Y + actor.position.y * CELL + CELL / 2;
         const tx = BOARD_X + target.position.x * CELL + CELL / 2;
         const ty = BOARD_Y + target.position.y * CELL + CELL / 2;
-        graphics.lineStyle(4, 0xf3c55e, 0.88).lineBetween(ax, ay, tx, ty);
-        graphics.lineStyle(4, 0xff5e49, 0.95).strokeCircle(tx, ty, 32);
+        graphics.lineStyle(3, 0xf3c55e, 0.65).lineBetween(ax, ay, tx, ty);
       }
     }
+
     graphics.fillStyle(0x101719, 0.92).fillRoundedRect(566, 72, 374, 330, 8);
     graphics.lineStyle(2, 0x697579, 1).strokeRoundedRect(566, 72, 374, 330, 8);
     this.addLabel(588, 92, "WASTELAND // SECTOR 08-06", 21, "#93a2a7");
@@ -167,23 +214,101 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private drawUnit(unit: Unit, legalTarget: boolean): void {
+  private drawEffectOverlay(
+    graphics: Phaser.GameObjects.Graphics,
+    effect: PresentationEffect,
+    progress: number,
+  ): void {
+    const eased = easeOutCubic(progress);
+    const fromPt = cellCenter(effect.from);
+    const toPt = cellCenter(effect.to);
+    if (effect.kind === "attack") {
+      const boltX =
+        fromPt.x + (toPt.x - fromPt.x) * Math.min(1, progress * 1.6);
+      const boltY =
+        fromPt.y + (toPt.y - fromPt.y) * Math.min(1, progress * 1.6);
+      graphics
+        .lineStyle(4, 0xf3c55e, 0.85 * (1 - progress * 0.5))
+        .lineBetween(fromPt.x, fromPt.y, boltX, boltY);
+      graphics.fillStyle(0xfff3b0, 1).fillCircle(boltX, boltY, 6);
+      graphics
+        .lineStyle(4, 0xff5e49, 1 - eased * 0.7)
+        .strokeCircle(toPt.x, toPt.y, 18 + eased * 18);
+      if (effect.amount !== undefined) {
+        const text = effect.coverMitigated
+          ? `-${effect.amount} ▰`
+          : `-${effect.amount}`;
+        this.addLabel(
+          toPt.x - 18,
+          toPt.y - 26 - eased * 18,
+          text,
+          20,
+          "#ff8e72",
+        );
+      }
+    } else if (effect.kind === "heal") {
+      graphics
+        .lineStyle(4, 0x62f5a9, 1 - eased * 0.6)
+        .strokeCircle(toPt.x, toPt.y, 16 + eased * 18);
+      if (effect.amount !== undefined) {
+        this.addLabel(
+          toPt.x - 16,
+          toPt.y - 26 - eased * 18,
+          `+${effect.amount}`,
+          20,
+          "#62f5a9",
+        );
+      }
+    }
+  }
+
+  private drawUnit(
+    unit: Unit,
+    legalTarget: boolean,
+    effectProgress: number,
+  ): void {
     if (!this.layer) return;
     const graphics = this.layer.list[0] as Phaser.GameObjects.Graphics;
-    const cx = BOARD_X + unit.position.x * CELL + CELL / 2;
-    const cy = BOARD_Y + unit.position.y * CELL + CELL / 2;
+    let cx = BOARD_X + unit.position.x * CELL + CELL / 2;
+    let cy = BOARD_Y + unit.position.y * CELL + CELL / 2;
+    const effect = this.activeEffect;
+    if (
+      effect &&
+      effectProgress < 1 &&
+      effect.kind === "move" &&
+      effect.unitId === unit.id
+    ) {
+      const eased = easeOutCubic(effectProgress);
+      const fromPt = cellCenter(effect.from);
+      const toPt = cellCenter(effect.to);
+      cx = fromPt.x + (toPt.x - fromPt.x) * eased;
+      cy = fromPt.y + (toPt.y - fromPt.y) * eased;
+    }
+
     const selected =
       unit.id === this.runtime.selectedId ||
       unit.id === this.runtime.activeActorId;
     const targeted = legalTarget || unit.id === this.runtime.activeTargetId;
     if (targeted) graphics.lineStyle(5, 0xff5e49, 1).strokeCircle(cx, cy, 29);
     if (selected) graphics.lineStyle(5, 0x63ddff, 1).strokeCircle(cx, cy, 31);
+
+    const fill = unit.team === "survivor" ? 0x3b7d8c : 0x913b2b;
+    const stroke = unit.team === "survivor" ? 0xbceffc : 0xffb09c;
+    graphics.fillStyle(fill, 1).fillCircle(cx, cy, 24);
+    graphics.lineStyle(3, stroke, 1).strokeCircle(cx, cy, 24);
+
+    // Tactical shoulder/visor silhouette accent
     graphics
-      .fillStyle(unit.team === "survivor" ? 0x4f9aac : 0xa64a37, 1)
-      .fillCircle(cx, cy, 24);
+      .fillStyle(unit.team === "survivor" ? 0x75dafa : 0xff8c6f, 0.28)
+      .fillRoundedRect(cx - 14, cy - 8, 28, 16, 5);
+
+    // Mini health bar at top of token
+    const hpRatio = Math.max(0, Math.min(1, unit.hp / unit.maxHp));
+    graphics.fillStyle(0x0c1012, 0.85).fillRect(cx - 18, cy - 27, 36, 5);
     graphics
-      .lineStyle(3, unit.team === "survivor" ? 0xbceffc : 0xffb09c, 1)
-      .strokeCircle(cx, cy, 24);
+      .fillStyle(unit.team === "survivor" ? 0x62f5a9 : 0xff6e59, 0.95)
+      .fillRect(cx - 18, cy - 27, Math.round(36 * hpRatio), 5);
+
     const glyph = unit.id.includes("scout")
       ? "S"
       : unit.id.includes("gunner")
@@ -191,8 +316,8 @@ export class BattleScene extends Phaser.Scene {
         : unit.id.includes("medic")
           ? "+"
           : unit.id.slice(-1).toUpperCase();
-    this.addLabel(cx - 8, cy - 15, glyph, 25, "#ffffff");
-    this.addLabel(cx - 29, cy + 21, `${unit.hp}♥ ${unit.ap}◆`, 21, "#ffffff");
+    this.addLabel(cx - 8, cy - 15, glyph, 24, "#ffffff");
+    this.addLabel(cx - 29, cy + 20, `${unit.hp}♥ ${unit.ap}◆`, 20, "#ffffff");
   }
 
   private addRoster(x: number, y: number, units: Unit[]): void {
