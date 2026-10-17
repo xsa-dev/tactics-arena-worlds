@@ -36,10 +36,20 @@ import {
   DeterministicSurvivorPolicy,
 } from "../survivor/resilient-policy";
 import type {
+  DecisionSource,
+  FallbackReason,
   SurvivorControlMode,
   SurvivorPolicy,
   SurvivorPolicyConfig,
 } from "../survivor/policy";
+import {
+  assertRedactedDiagnostic,
+  createAiReplayEnvelope,
+  latencyBucket,
+  type AiReplayEnvelopeV1,
+  type DecisionDiagnosticRecord,
+  type RecordedSurvivorDecision,
+} from "../survivor/diagnostics";
 
 export type ActionMode = "move" | "attack" | "ability";
 export type AutoplaySpeed = 0.25 | 0.5 | 1 | 2 | 4;
@@ -135,6 +145,10 @@ export class GameRuntime {
   private autoplayInFlight = false;
   private autoplayDecisions = 0;
   private nextAutoplayAt = 0;
+  private readonly decisionDiagnostics: DecisionDiagnosticRecord[] = [];
+  private readonly recordedDecisions: RecordedSurvivorDecision[] = [];
+  private readonly recordedEventTypes: BattleEvent["type"][] = [];
+  private initialBattleSnapshot: BattleState;
 
   constructor(
     public readonly platform: PlatformService,
@@ -179,6 +193,7 @@ export class GameRuntime {
       new DeterministicSurvivorPolicy(),
     );
     this.lifecycle = this.newLifecycle();
+    this.initialBattleSnapshot = structuredClone(this.session.state);
     this.displayState = structuredClone(this.session.state);
     this.onboardingOpen = !this.preferences.isOnboardingDismissed();
     if (this.onboardingOpen) this.session.onboarding("shown");
@@ -235,6 +250,18 @@ export class GameRuntime {
   }
   get autoplayActive(): boolean {
     return this.survivorMode === "openjev";
+  }
+  get diagnostics(): readonly DecisionDiagnosticRecord[] {
+    return this.decisionDiagnostics;
+  }
+  replayEnvelope(): AiReplayEnvelopeV1 {
+    return createAiReplayEnvelope({
+      battleId: this.session.state.battleId,
+      initialState: this.initialBattleSnapshot,
+      terminalState: this.session.state,
+      decisions: this.recordedDecisions,
+      eventTypes: this.recordedEventTypes,
+    });
   }
   get controlMode(): SurvivorControlMode {
     return this.survivorMode;
@@ -386,7 +413,15 @@ export class GameRuntime {
   private resolve(
     command: BattleCommand,
     sourceMode: SurvivorControlMode = this.survivorMode,
-  ): void {
+    aiMeta?: {
+      candidateId: string;
+      source: DecisionSource;
+      fallbackReason?: FallbackReason;
+      stateFingerprint: string;
+      round: number;
+      latencyMs: number;
+    },
+  ): boolean {
     const before = structuredClone(this.displayState);
     const result = this.session.execute(command, sourceMode);
     if (!result.accepted) {
@@ -395,12 +430,62 @@ export class GameRuntime {
         `reject.${result.reason}` as `reject.${RejectionReason}`,
       );
       this.notify();
-      return;
+      return false;
     }
-    if (result.accepted) {
-      this.cancelAutoplay();
-      this.autoplayDecisions += 1;
-      this.nextAutoplayAt = 0;
+    this.cancelAutoplay();
+    this.autoplayDecisions += 1;
+    this.nextAutoplayAt = 0;
+    const acceptedEventTypes = result.events.map((event) => event.type);
+    this.recordedEventTypes.push(...acceptedEventTypes);
+    this.recordedDecisions.push({
+      candidateId:
+        aiMeta?.candidateId ?? `human-${this.recordedDecisions.length + 1}`,
+      command: structuredClone(command),
+      source: aiMeta?.source ?? "fallback",
+      ...(aiMeta?.fallbackReason
+        ? { fallbackReason: aiMeta.fallbackReason }
+        : {}),
+    });
+    if (aiMeta) {
+      const record: DecisionDiagnosticRecord = {
+        battleId: before.battleId,
+        round: aiMeta.round,
+        stateFingerprint: aiMeta.stateFingerprint,
+        candidateId: aiMeta.candidateId,
+        source: aiMeta.source,
+        latencyBucket: latencyBucket(aiMeta.latencyMs),
+        ...(aiMeta.fallbackReason
+          ? { fallbackReason: aiMeta.fallbackReason }
+          : {}),
+        acceptedEventTypes,
+      };
+      assertRedactedDiagnostic(record);
+      this.decisionDiagnostics.push(record);
+      if (aiMeta.source === "fallback" && aiMeta.fallbackReason) {
+        this.platform.emit({
+          name: "ai_fallback_used",
+          atMs: performance.now(),
+          properties: {
+            battleId: before.battleId,
+            round: aiMeta.round,
+            stateFingerprint: aiMeta.stateFingerprint,
+            candidateId: aiMeta.candidateId,
+            fallbackReason: aiMeta.fallbackReason,
+          },
+        });
+      }
+      this.platform.emit({
+        name: "ai_decision_accepted",
+        atMs: performance.now(),
+        properties: {
+          battleId: before.battleId,
+          round: aiMeta.round,
+          stateFingerprint: aiMeta.stateFingerprint,
+          candidateId: aiMeta.candidateId,
+          source: aiMeta.source,
+          latencyBucket: record.latencyBucket,
+        },
+      });
     }
     if (command.type === "end-player-phase") {
       this.displayState = before;
@@ -424,6 +509,7 @@ export class GameRuntime {
     }
     if (this.session.state.status !== "active") this.gameplay.setTerminal(true);
     this.notify();
+    return true;
   }
 
   private cancelAutoplay(): void {
@@ -447,6 +533,18 @@ export class GameRuntime {
     const controller = new AbortController();
     this.autoplayController = controller;
     this.autoplayInFlight = true;
+    const requestStartedAt = performance.now();
+    const requestRound = this.session.state.round;
+    this.platform.emit({
+      name: "ai_decision_requested",
+      atMs: requestStartedAt,
+      properties: {
+        battleId: this.session.state.battleId,
+        round: requestRound,
+        stateFingerprint: decisionSet.fingerprint,
+        candidateCount: decisionSet.candidates.length,
+      },
+    });
     const candidates = decisionSet.candidates.map(
       ({ id, command, summary }) => ({
         id,
@@ -468,13 +566,43 @@ export class GameRuntime {
           return;
         const current = enumerateLegalSurvivorCommands(this.session.state);
         if (current.fingerprint !== decisionSet.fingerprint) return;
-        const candidate =
-          this.autoplayDecisions >= this.maxActionsPerPhase
-            ? deterministicCandidate(current.candidates)
-            : (current.candidates.find(
-                ({ id }) => id === decision.candidateId,
-              ) ?? deterministicCandidate(current.candidates));
-        if (candidate) this.resolve(candidate.command, "openjev");
+        const elapsedMs = Math.max(
+          0,
+          Math.round(performance.now() - requestStartedAt),
+        );
+        const capReached = this.autoplayDecisions >= this.maxActionsPerPhase;
+        const matched = capReached
+          ? undefined
+          : current.candidates.find(({ id }) => id === decision.candidateId);
+        const candidate = matched ?? deterministicCandidate(current.candidates);
+        if (!candidate) return;
+        const usedFallback = !matched;
+        const accepted = this.resolve(candidate.command, "openjev", {
+          candidateId: candidate.id,
+          source: usedFallback ? "fallback" : decision.source,
+          ...(usedFallback
+            ? { fallbackReason: decision.fallbackReason ?? "unknown-candidate" }
+            : decision.fallbackReason
+              ? { fallbackReason: decision.fallbackReason }
+              : {}),
+          stateFingerprint: current.fingerprint,
+          round: requestRound,
+          latencyMs: elapsedMs,
+        });
+        if (!accepted) {
+          const fresh = enumerateLegalSurvivorCommands(this.session.state);
+          const fallbackCandidate = deterministicCandidate(fresh.candidates);
+          if (fallbackCandidate) {
+            this.resolve(fallbackCandidate.command, "openjev", {
+              candidateId: fallbackCandidate.id,
+              source: "fallback",
+              fallbackReason: "dispatch-rejected",
+              stateFingerprint: fresh.fingerprint,
+              round: this.session.state.round,
+              latencyMs: elapsedMs,
+            });
+          }
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -698,7 +826,11 @@ export class GameRuntime {
     for (const blocker of this.activeBlockers)
       this.lifecycle.setPaused(blocker, true);
     this.gameplay.beginReplay();
+    this.initialBattleSnapshot = structuredClone(this.session.state);
     this.displayState = structuredClone(this.session.state);
+    this.decisionDiagnostics.length = 0;
+    this.recordedDecisions.length = 0;
+    this.recordedEventTypes.length = 0;
     this.pendingFinal = null;
     this.selectedId = null;
     this.activeActorId = null;

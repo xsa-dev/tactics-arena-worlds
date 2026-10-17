@@ -12,7 +12,23 @@ test("AI exhibition advances without board input and keeps human board controls 
     .toBe(true);
 
   const before = await page.evaluate(() => window.__TACTICS__.snapshot());
-  await page.waitForTimeout(3500);
+  await page.locator("#speed-2").click();
+  await expect(page.locator("#speed-2")).toHaveClass(/active/);
+
+  // Pause via blur and resume via focus during autoplay without duplicating state
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  const pausedSnapshot = await page.evaluate(() =>
+    window.__TACTICS__.snapshot(),
+  );
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__TACTICS__.snapshot())).toEqual(
+    pausedSnapshot,
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+
+  await page.locator("#speed-4").click();
+  await expect(page.locator("#speed-4")).toHaveClass(/active/);
+  await page.waitForTimeout(3000);
   const after = await page.evaluate(() => window.__TACTICS__.snapshot());
 
   expect(after.round).toBeGreaterThan(before.round);
