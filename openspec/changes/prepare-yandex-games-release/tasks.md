@@ -40,7 +40,7 @@
 - [x] 5.3 Generate SHA-256 checksums for the ZIP and extracted application files and verify that mutation invalidates qualification evidence.
 - [x] 5.4 Add a temporary-unpack/static-server smoke that checks asset loading, interactive readiness, console/page errors, and one critical battle flow from the packaged artifact.
 - [x] 5.5 Build `study-draft`, prove advertising is disabled and SDK integration remains enabled, and bind all test/build/review evidence to its manifest/checksum.
-- [ ] 5.6 Upload the exact study ZIP to a newly created Yandex draft only after the user confirms developer Console/RSA access; record developer account, immutable game ID, checksum, and draft URL without storing credentials.
+- [x] 5.6 Upload the exact study ZIP to a newly created Yandex draft only after the user confirms developer Console/RSA access; record developer account, immutable game ID, checksum, and draft URL without storing credentials. (`ID: 633082`, `https://yandex.ru/games/app/633082?draft=true`, ZIP SHA-256 `1b0301bd4cdf422b8dcead691f977c0842098a1786f03c8b331f9270d563044b`)
 - [ ] 5.7 Qualify the Yandex-hosted study draft with the debug panel for SDK initialization, Game Ready, SDK locale, lifecycle, local JSON export, ru/en, mouse/touch, 640×360 landscape, and portrait rotation blocking.
 
 ## 6. Separate product-study prerequisite

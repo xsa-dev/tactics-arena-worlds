@@ -216,6 +216,35 @@ async function captureCover(name, title, subtitle, badges) {
 await capture("desktop-1280x720-en", { width: 1280, height: 720 }, "en");
 await capture("desktop-1280x720-ru", { width: 1280, height: 720 }, "ru");
 await capture("mobile-640x360-ru", { width: 640, height: 360 }, "ru", true);
+
+async function captureActionScene(name, viewport, language) {
+  const context = await browser.newContext({ viewport });
+  const page = await context.newPage();
+  await page.goto(`http://127.0.0.1:4174/?lang=${language}`);
+  const dismiss = page.getByTestId("onboarding-dismiss");
+  if (await dismiss.isVisible()) await dismiss.click();
+  await page.waitForFunction(() =>
+    window.__TACTICS__.eventNames().includes("battle_started"),
+  );
+  await page.locator("#ability-action").click();
+  await page.waitForTimeout(250);
+  await page.screenshot({
+    path: `artifacts/screenshots/${name}.png`,
+    fullPage: true,
+  });
+  await context.close();
+}
+
+await captureActionScene(
+  "desktop-1280x720-en-2",
+  { width: 1280, height: 720 },
+  "en",
+);
+await captureActionScene(
+  "desktop-1280x720-ru-2",
+  { width: 1280, height: 720 },
+  "ru",
+);
 await captureCover("cover-800x470", "TACTICS ARENA", "WASTELAND", {
   description:
     "Command Scout, Gunner, and Medic across an 8×6 tactical grid with cover, line-of-sight, and squad abilities.",
