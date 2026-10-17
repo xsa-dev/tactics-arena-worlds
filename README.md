@@ -9,11 +9,12 @@ A deterministic 8×6 squad tactics battle built with Phaser 3, TypeScript, and V
 - **Live Game:** [https://xsa-dev.github.io/tactics-arena-worlds/](https://xsa-dev.github.io/tactics-arena-worlds/)
 - **Web App Manifest:** [https://xsa-dev.github.io/tactics-arena-worlds/manifest.json](https://xsa-dev.github.io/tactics-arena-worlds/manifest.json)
 - **Privacy Policy:** [https://xsa-dev.github.io/tactics-arena-worlds/privacy.html](https://xsa-dev.github.io/tactics-arena-worlds/privacy.html)
+- **External Release Steps (Solana dApp Store / OpenJEV / Yandex Games):** [docs/external-release-steps.md](docs/external-release-steps.md)
 
 ## Features
 
 - **Deterministic 8×6 Combat Engine (`src/core`):** Pure functional state transitions with zero PRNG, orthogonal movement, Bresenham wall line-of-sight, walkable half-cover mitigation, and once-per-battle unit abilities (`Aimed Shot`, `Burst`, `Medkit`).
-- **Human & AI Autoplay (`src/survivor`):** Switch live between manual squad command (`Mode: Human`) and AI-vs-AI autoplay (`Mode: AI Auto`) with `1×`, `2×`, and `4×` presentation speed controls.
+- **Human & AI Autoplay (`src/survivor`):** Switch live between manual squad command (`Mode: Human`) and AI-vs-AI autoplay (`Mode: AI Auto`) with `0.25×`, `0.5×`, `1×`, `2×`, and `4×` presentation speed controls.
 - **Solana Mobile & Seeker Integration (`src/solana`):**
   - Native Mobile Wallet Adapter (`@solana-mobile/wallet-standard-mobile`) support for Seed Vault Wallet, Phantom, and Solflare.
   - On-chain **Seeker Genesis Token (SGT)** ownership check (`@solana-mobile/skr-genesis-token`) unlocking the `SEEKER VERIFIED` squad badge.
