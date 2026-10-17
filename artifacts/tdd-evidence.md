@@ -2,6 +2,16 @@
 
 Every behavior slice records the focused failing command and the matching green command.
 
+## Independent GO Review & Reproducible `study-draft` Package Closure (Tasks 1.8 & 5.5)
+
+- **Task 1.8 (Independent OpenSpec-compliance & code-quality GO review)**:
+  - Reviewed all playable and release changes across `src/release/config.ts`, `src/release/manifest.ts`, `src/release/persistence.ts`, `src/platform/index.ts`, `src/platform/readiness.ts`, `src/platform/operator.ts`, `src/platform/gameplay-coordinator.ts`, `scripts/package-release.mjs`, `scripts/release-pipeline.mjs`, and `scripts/release-tools.mjs`.
+  - Confirmed `study-draft` sets `adPolicy: "disabled_for_study"`, `publicationEligible: false`, `sdkEnabled: true`, and `savePolicy: "preferences_only_no_progression"`.
+  - Confirmed original study tasks `6.1`–`6.5` in `openspec/changes/validate-tactical-battle-prototype/tasks.md` remain unchecked pending the 15-session human playtest cohort.
+  - Verdict: **GO** for tasks `1.1`–`5.5`.
+- **Task 5.5 (`study-draft` package & qualification evidence binding)**:
+  - Rebuilt `study-draft` via `RELEASE_PROFILE=study-draft npm run release:package` (`qualifyTwoCleanCheckouts`), binding all 10 qualification gates (`dependency-install`, `format-check`, `typecheck`, `unit-contract-tests`, `browser-tests`, `production-build`, `packaged-artifact-smoke`, `security-audit`, and strict OpenSpec validations) to `artifacts/releases/0.1.0/release-manifest.json`, `artifacts/releases/0.1.0/SHA256SUMS`, and `artifacts/releases/0.1.0/qualification-evidence.json`.
+
 ## Second and final focused fix cycle (2026-08-31)
 
 - Canonical profile propagation RED: `npm test -- --run

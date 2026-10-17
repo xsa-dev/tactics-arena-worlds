@@ -7,7 +7,7 @@
 - [x] 1.5 RED→GREEN one transition at a time: first add/run failures for every allowed/rejected `prestart`, `active`, `terminal`, `abandoned`, and `finalized` operation—including technical/gameplay help, explicit request, abandonment reasons, metadata lock, nonfinal snapshots with `exportFinalized=false`, byte-identical finalized snapshots with `exportFinalized=true`, replay rollover, immutable old-session bytes, exactly-once finalization, and invalid IDs/enums/order—then implement only the transition needed for each GREEN step.
 - [x] 1.6 RED→GREEN: first add/run a regression proving Rules emits only `rules_opened`, then remove its automatic `help_requested` emission and verify exported eligibility fields remain deterministic.
 - [x] 1.7 Run formatter, strict typecheck, all unit/contract tests, all existing browser flows, production build, strict validation of `validate-tactical-battle-prototype`, and desktop/640×360 visual inspection.
-- [ ] 1.8 Obtain independent OpenSpec-compliance and code-quality GO reviews of all tracked and untracked playable changes; leave original study tasks 6.1–6.5 unchecked.
+- [x] 1.8 Obtain independent OpenSpec-compliance and code-quality GO reviews of all tracked and untracked playable changes; leave original study tasks 6.1–6.5 unchecked.
 
 ## 2. Release profiles, manifest, and qualification model
 
@@ -39,7 +39,7 @@
 - [x] 5.2 RED→GREEN: first add/run a two-clean-checkout reproducibility test; then implement `SOURCE_DATE_EPOCH` from commit time plus normalized manifest time, ZIP entry order, timestamps, and modes under `artifacts/releases/<version>/`.
 - [x] 5.3 Generate SHA-256 checksums for the ZIP and extracted application files and verify that mutation invalidates qualification evidence.
 - [x] 5.4 Add a temporary-unpack/static-server smoke that checks asset loading, interactive readiness, console/page errors, and one critical battle flow from the packaged artifact.
-- [ ] 5.5 Build `study-draft`, prove advertising is disabled and SDK integration remains enabled, and bind all test/build/review evidence to its manifest/checksum.
+- [x] 5.5 Build `study-draft`, prove advertising is disabled and SDK integration remains enabled, and bind all test/build/review evidence to its manifest/checksum.
 - [ ] 5.6 Upload the exact study ZIP to a newly created Yandex draft only after the user confirms developer Console/RSA access; record developer account, immutable game ID, checksum, and draft URL without storing credentials.
 - [ ] 5.7 Qualify the Yandex-hosted study draft with the debug panel for SDK initialization, Game Ready, SDK locale, lifecycle, local JSON export, ru/en, mouse/touch, 640×360 landscape, and portrait rotation blocking.
 
