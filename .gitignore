@@ -4,3 +4,10 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .DS_Store
+*.keystore
+*.jks
+*.p12
+*-keypair.json
+keypair.json
+webshell/android/
+

@@ -13,13 +13,19 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "test:browser": "playwright test",
     "test:browser:ai": "playwright test --config playwright.ai.config.ts",
+    "test:browser:solana": "playwright test --config playwright.solana.config.ts",
     "test:release-artifact": "vitest run --config vite.release.config.ts",
     "release:package": "node scripts/package-release.mjs",
     "release:verify-repro": "node scripts/verify-clean-reproducibility.mjs",
+    "release:solana-webshell": "node scripts/build-solana-webshell.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@solana-mobile/skr-genesis-token": "^1.0.1",
+    "@solana-mobile/wallet-standard-mobile": "^0.7.0",
+    "@solana/kit": "^8.5.0",
+    "@wallet-standard/app": "^1.1.1",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
@@ -28,5 +34,9 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.3",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "source-map-js": "^1.2.2",
+    "tinypool": "^2.1.2"
   }
 }

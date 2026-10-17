@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#151a1d" />
+    <title>Privacy Policy — Tactics Arena: Wasteland</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #101416;
+        color: #f4ead3;
+        line-height: 1.5;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px 24px;
+        border: 2px solid #d3a84e;
+        border-radius: 10px;
+        background: #22292b;
+      }
+      h1,
+      h2 {
+        color: #f3c55e;
+      }
+      a {
+        color: #7fdef8;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy Policy — Tactics Arena: Wasteland</h1>
+      <p>Effective date: October 17, 2026</p>
+      <h2>1. Data Collection and Local Preferences</h2>
+      <p>
+        Tactics Arena: Wasteland does not collect, sell, or transmit personal
+        identifiable information, geolocation, contacts, or device identifiers
+        to any developer-operated tracking database. The application stores only
+        local user interface preferences in browser storage:
+        <code>tactics-onboarding-v1</code> (onboarding dismissal) and
+        <code>tactics-locale-v1</code> (selected interface language), plus
+        session-scoped keys <code>tactics-mwa-auth-v1</code> and
+        <code>tactics-battle-proof-v1</code> for temporary wallet authorization
+        and completed battle proof state.
+      </p>
+      <h2>2. Optional Solana Wallet and Public RPC Interactions</h2>
+      <p>
+        Gameplay requires no account or wallet connection. If you voluntarily
+        connect a Solana wallet on Solana Mobile or compatible browsers via
+        Mobile Wallet Adapter, your public wallet address is used locally to:
+      </p>
+      <ul>
+        <li>
+          Check Seeker Genesis Token ownership via a public Solana JSON-RPC
+          endpoint (api.mainnet-beta.solana.com).
+        </li>
+        <li>
+          Request an Ed25519 signature over a deterministic battle replay
+          summary when you explicitly press Sign Battle Proof.
+        </li>
+      </ul>
+      <p>
+        Private keys and seed phrases remain exclusively inside your wallet
+        application (such as Seed Vault Wallet, Phantom, or Solflare) and are
+        never accessible to this application.
+      </p>
+      <h2>3. Clearing Local Data</h2>
+      <p>
+        You may clear all local preference and session data at any time by
+        clearing site/app storage in your browser or Android application
+        settings.
+      </p>
+      <p><a href="./">Return to Tactics Arena: Wasteland</a></p>
+    </main>
+  </body>
+</html>

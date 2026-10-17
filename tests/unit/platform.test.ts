@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   LocalPlatformService,
+  SolanaMobilePlatformService,
   createPlatformService,
+  createSdkLoader,
 } from "../../src/platform";
 import { BattleSession } from "../../src/platform/battle-session";
 import { FROZEN_WINNING_COMMANDS } from "../../src/core/scenario";
@@ -112,5 +114,31 @@ describe("platform adapters", () => {
     await expect(
       createPlatformService(() => new Promise(() => undefined), 5, "en"),
     ).resolves.toMatchObject({ kind: "local" });
+  });
+
+  it("initializes SolanaMobilePlatformService immediately without /sdk.js and supports lifecycle events", async () => {
+    const loadScript = vi.fn();
+    expect(
+      createSdkLoader({
+        hostname: "xsa-dev.github.io",
+        automated: false,
+        sdkEnabled: false,
+        loadScript,
+        initialize: vi.fn(),
+      }),
+    ).toBeUndefined();
+    expect(loadScript).not.toHaveBeenCalled();
+
+    const platform = new SolanaMobilePlatformService("en-US");
+    await platform.initialize();
+    expect(platform.kind).toBe("solana-mobile");
+    expect(platform.platformKind).toBe("solana-mobile");
+    expect(platform.language).toBe("en");
+    expect(platform.fallbackReason).toBeNull();
+    const lifecycle: string[] = [];
+    platform.subscribeLifecycle((event) => lifecycle.push(event));
+    platform.signalLifecycle("pause");
+    platform.signalLifecycle("resume");
+    expect(lifecycle).toEqual(["pause", "resume"]);
   });
 });

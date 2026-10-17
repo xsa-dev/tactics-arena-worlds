@@ -18,8 +18,8 @@ export interface SessionMetadata {
 }
 
 export interface PlatformService {
-  readonly kind: "local" | "yandex";
-  readonly platformKind: "local" | "yandex";
+  readonly kind: "local" | "yandex" | "solana-mobile";
+  readonly platformKind: "local" | "yandex" | "solana-mobile";
   readonly language: Language;
   readonly languageSource: "sdk" | "fallback";
   readonly fallbackReason: string | null;
@@ -34,8 +34,8 @@ export interface PlatformService {
 }
 
 export class LocalPlatformService implements PlatformService {
-  readonly kind: "local" | "yandex" = "local";
-  readonly platformKind: "local" | "yandex" = "local";
+  readonly kind: "local" | "yandex" | "solana-mobile" = "local";
+  readonly platformKind: "local" | "yandex" | "solana-mobile" = "local";
   readonly language: Language;
   readonly languageSource: "sdk" | "fallback" = "fallback";
   readonly fallbackReason: string | null;
@@ -144,11 +144,23 @@ export class YandexPlatformService extends LocalPlatformService {
   }
 }
 
+export class SolanaMobilePlatformService extends LocalPlatformService {
+  override readonly kind = "solana-mobile" as const;
+  override readonly platformKind = "solana-mobile" as const;
+  override readonly fallbackReason: string | null = null;
+
+  constructor(language?: string) {
+    super(language, "solana_mobile_environment");
+    this.fallbackReason = null;
+  }
+}
+
 export type SdkLoader = () => Promise<YandexSdk>;
 
 interface SdkLoaderOptions {
   hostname: string;
   automated: boolean;
+  sdkEnabled?: boolean;
   loadScript(path: string): Promise<unknown>;
   initialize(): Promise<YandexSdk>;
 }
@@ -157,6 +169,7 @@ export function createSdkLoader(
   options: SdkLoaderOptions,
 ): SdkLoader | undefined {
   if (
+    options.sdkEnabled === false ||
     options.automated ||
     options.hostname === "localhost" ||
     options.hostname === "127.0.0.1"
@@ -208,7 +221,13 @@ export async function createPlatformService(
   loader: SdkLoader | undefined,
   timeoutMs = 2500,
   fallbackLanguage?: string,
+  profile?: ReleaseConfig["profile"],
 ): Promise<PlatformService> {
+  if (profile === "solana-mobile") {
+    const solana = new SolanaMobilePlatformService(fallbackLanguage);
+    await solana.initialize();
+    return solana;
+  }
   const local = new LocalPlatformService(
     fallbackLanguage,
     loader ? "sdk_initialization_failed" : "sdk_loader_unavailable",

@@ -31,6 +31,13 @@ describe("release packaging preflight", () => {
   it("fails closed for dirty source, lock mismatch, commit/profile errors, or incomplete manifest", () => {
     expect(validateReleaseInputs(valid)).toEqual([]);
     expect(
+      validateReleaseInputs({
+        ...valid,
+        profile: "solana-mobile",
+        manifest: { ...valid.manifest, profile: "solana-mobile" },
+      }),
+    ).toEqual([]);
+    expect(
       validateReleaseInputs({ ...valid, gitStatus: " M src/main.ts" }),
     ).toContain("source tree is dirty");
     expect(validateReleaseInputs({ ...valid, sourceCommit: "" })).toContain(

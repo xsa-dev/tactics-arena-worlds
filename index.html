@@ -7,22 +7,57 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#151a1d" />
+    <link rel="manifest" href="./manifest.json" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="./icons/icon-192.png"
+    />
+    <link rel="privacy-policy" href="./privacy.html" />
     <title>Tactics Arena: Wasteland</title>
   </head>
   <body>
     <main id="game-shell" data-testid="game-shell">
       <div id="game"></div>
+      <nav
+        id="top-controls"
+        data-testid="top-controls"
+        class="top-controls hidden"
+        aria-label="Platform controls"
+      >
+        <button
+          id="mode-toggle"
+          data-testid="mode-toggle"
+          type="button"
+        ></button>
+        <button
+          id="locale-toggle"
+          data-testid="locale-toggle"
+          type="button"
+        ></button>
+        <button
+          id="wallet-button"
+          data-testid="wallet-button"
+          type="button"
+        ></button>
+        <span
+          id="seeker-badge"
+          data-testid="seeker-badge"
+          class="seeker-badge hidden"
+        ></span>
+      </nav>
       <section id="hud" aria-live="polite">
         <div id="selected-status"></div>
         <div id="feedback"></div>
         <div id="ai-status" class="ai-status"></div>
-        <div id="ai-speed" class="ai-speed hidden">
-          <span id="ai-speed-label"></span>
-          <button id="speed-1" type="button"></button>
-          <button id="speed-2" type="button"></button>
-          <button id="speed-4" type="button"></button>
-        </div>
       </section>
+      <div id="ai-speed" class="ai-speed hidden">
+        <span id="ai-speed-label"></span>
+        <button id="speed-1" type="button"></button>
+        <button id="speed-2" type="button"></button>
+        <button id="speed-4" type="button"></button>
+      </div>
       <nav
         id="game-controls"
         data-testid="game-controls"
@@ -54,8 +89,25 @@
         <div class="panel result-panel">
           <h1 id="result-title"></h1>
           <p id="result-stats"></p>
+          <p
+            id="result-proof-status"
+            data-testid="result-proof-status"
+            class="proof-status hidden"
+          ></p>
           <button data-testid="replay" id="replay"></button>
           <button data-testid="export" id="export"></button>
+          <button
+            data-testid="sign-proof"
+            id="sign-proof"
+            class="hidden"
+            type="button"
+          ></button>
+          <button
+            data-testid="verify-proof"
+            id="verify-proof"
+            class="hidden"
+            type="button"
+          ></button>
         </div>
       </section>
       <section

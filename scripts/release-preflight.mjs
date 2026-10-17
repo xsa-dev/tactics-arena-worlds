@@ -5,7 +5,11 @@ export function validateReleaseInputs(input) {
   if (input.gitStatus.trim()) errors.push("source tree is dirty");
   if (!/^[0-9a-f]{40}$/i.test(input.sourceCommit))
     errors.push("source commit is missing");
-  if (input.profile !== "study-draft" && input.profile !== "catalog-release")
+  if (
+    input.profile !== "study-draft" &&
+    input.profile !== "catalog-release" &&
+    input.profile !== "solana-mobile"
+  )
     errors.push("release profile is unknown");
   if (input.profile === "catalog-release")
     errors.push("catalog-release prerequisites are incomplete");

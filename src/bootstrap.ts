@@ -1,4 +1,5 @@
 import type { SurvivorPolicy } from "./survivor/policy";
+import type { SeekerVerifier, WalletAdapterLike } from "./solana/types";
 
 export interface ProxyTransport {
   request(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -20,6 +21,8 @@ export interface BootstrapDependencies {
   readonly proxyTransport?: ProxyTransport;
   readonly clock?: DeterministicClock;
   readonly deferredResponses?: DeferredTestResponses;
+  readonly walletAdapter?: WalletAdapterLike;
+  readonly seekerVerifier?: SeekerVerifier;
 }
 
 export const systemClock: DeterministicClock = {

@@ -88,6 +88,37 @@ describe("release archive tooling", () => {
         },
       ]),
     ).toContain("forbidden absolute host: forbidden.example");
+    expect(
+      validateArchiveEntries(
+        [
+          {
+            path: "index.html",
+            size: 1,
+            content: "<script src='./app.js'></script>",
+          },
+          {
+            path: "app.js",
+            size: 100,
+            content:
+              'fetch("https://api.mainnet-beta.solana.com");new URL("https://xsa-dev.github.io/tactics-arena-worlds/");window.location.href="https://solanamobile.com/wallets";fetch("http://localhost")',
+          },
+        ],
+        { profile: "solana-mobile" },
+      ),
+    ).toEqual([]);
+    expect(
+      validateArchiveEntries(
+        [
+          {
+            path: "index.html",
+            size: 1,
+            content:
+              '<script src="https://api.mainnet-beta.solana.com/a.js"></script>',
+          },
+        ],
+        { profile: "study-draft" },
+      ),
+    ).toContain("forbidden absolute host: api.mainnet-beta.solana.com");
     for (const [path, content] of [
       ["network.css", 'body{background:url("https://css.example/a.png")}'],
       ["network.js", 'const endpoint=new URL("https://url.example/a")'],

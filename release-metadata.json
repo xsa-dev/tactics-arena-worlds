@@ -18,6 +18,10 @@
     "ai-exhibition": {
       "adPolicy": "disabled_for_study",
       "publicationEligible": false
+    },
+    "solana-mobile": {
+      "adPolicy": "disabled_for_study",
+      "publicationEligible": true
     }
   },
   "languages": ["en", "ru"],

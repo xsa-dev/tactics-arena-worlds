@@ -125,13 +125,25 @@ export class BattleScene extends Phaser.Scene {
     graphics.fillStyle(0x101719, 0.92).fillRoundedRect(566, 72, 374, 330, 8);
     graphics.lineStyle(2, 0x697579, 1).strokeRoundedRect(566, 72, 374, 330, 8);
     this.addLabel(588, 92, "WASTELAND // SECTOR 08-06", 21, "#93a2a7");
-    this.addLabel(588, 132, "SURVIVORS", 22, "#75dafa");
+    this.addLabel(
+      588,
+      132,
+      t(this.runtime.language, "phase.player"),
+      22,
+      "#75dafa",
+    );
     this.addRoster(
       588,
       164,
       state.units.filter(({ team }) => team === "survivor"),
     );
-    this.addLabel(588, 272, "RAIDERS", 22, "#ff8c6f");
+    this.addLabel(
+      588,
+      272,
+      t(this.runtime.language, "phase.enemy"),
+      22,
+      "#ff8c6f",
+    );
     this.addRoster(
       588,
       304,

@@ -1,7 +1,7 @@
 import type { SurvivorPolicyConfig } from "../survivor/policy";
 
 export type ReleaseProfile =
-  "study-draft" | "catalog-release" | "ai-exhibition";
+  "study-draft" | "catalog-release" | "ai-exhibition" | "solana-mobile";
 export type AdPolicy = "disabled_for_study" | "post_battle_fullscreen";
 
 export interface ReleaseDeclarations {
@@ -13,10 +13,18 @@ export interface ReleaseDeclarations {
   unlocks: boolean;
 }
 
+export interface SolanaMobileDeclarations {
+  readonly appUrl: string;
+  readonly applicationId: string;
+  readonly chains: readonly string[];
+  readonly rpcUrl: string;
+  readonly allowControlModeSwitch: boolean;
+}
+
 export interface ReleaseConfig {
   readonly version: string;
   readonly profile: ReleaseProfile;
-  readonly sdkEnabled: true;
+  readonly sdkEnabled: boolean;
   readonly adPolicy: AdPolicy;
   readonly publicationEligible: boolean;
   readonly scenarioFreezeId: string;
@@ -26,6 +34,7 @@ export interface ReleaseConfig {
   readonly declarations: ReleaseDeclarations;
   readonly survivor: Readonly<SurvivorPolicyConfig>;
   readonly aiExhibition: Readonly<AiExhibitionDeclarations>;
+  readonly solanaMobile: Readonly<SolanaMobileDeclarations>;
 }
 
 export interface AiExhibitionDeclarations {
@@ -84,7 +93,29 @@ const SURVIVOR_PROFILES: Record<
     timeoutMs: 5_000,
     maxActionsPerPhase: 12,
   }),
+  "solana-mobile": Object.freeze({
+    mode: "human",
+    proxyUrl: "",
+    timeoutMs: 5_000,
+    maxActionsPerPhase: 12,
+  }),
 };
+
+const SOLANA_MOBILE: SolanaMobileDeclarations = Object.freeze({
+  appUrl: "https://xsa-dev.github.io/tactics-arena-worlds/",
+  applicationId: "dev.xsa.tacticsarena",
+  chains: Object.freeze(["solana:mainnet"]),
+  rpcUrl: "https://api.mainnet-beta.solana.com",
+  allowControlModeSwitch: true,
+});
+
+const INACTIVE_SOLANA_MOBILE: SolanaMobileDeclarations = Object.freeze({
+  appUrl: "",
+  applicationId: "",
+  chains: Object.freeze([]),
+  rpcUrl: "",
+  allowControlModeSwitch: false,
+});
 
 export function createReleaseConfig(
   profile: string | undefined,
@@ -98,7 +129,8 @@ export function createReleaseConfig(
   if (
     profile !== "study-draft" &&
     profile !== "catalog-release" &&
-    profile !== "ai-exhibition"
+    profile !== "ai-exhibition" &&
+    profile !== "solana-mobile"
   )
     throw new Error(
       `Unknown or missing release profile: ${profile ?? "<missing>"}`,
@@ -113,7 +145,7 @@ export function createReleaseConfig(
   return Object.freeze({
     version: RELEASE_CONSTANTS.version,
     profile,
-    sdkEnabled: true,
+    sdkEnabled: profile !== "solana-mobile",
     adPolicy: profileMetadata.adPolicy,
     publicationEligible: profileMetadata.publicationEligible,
     ...freezes,
@@ -130,6 +162,8 @@ export function createReleaseConfig(
             vendor: "openjev",
             disclosure: "external-ai-with-deterministic-fallback",
           }),
+    solanaMobile:
+      profile === "solana-mobile" ? SOLANA_MOBILE : INACTIVE_SOLANA_MOBILE,
   });
 }
 

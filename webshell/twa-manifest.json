@@ -1,0 +1,22 @@
+{
+  "packageId": "dev.xsa.tacticsarena",
+  "host": "xsa-dev.github.io",
+  "name": "Tactics Arena: Wasteland",
+  "launcherName": "Tactics Arena",
+  "display": "standalone",
+  "orientation": "landscape",
+  "themeColor": "#151A1D",
+  "navigationColor": "#101416",
+  "backgroundColor": "#101416",
+  "enableNotifications": false,
+  "startUrl": "/tactics-arena-worlds/",
+  "iconUrl": "https://xsa-dev.github.io/tactics-arena-worlds/icons/icon-512.png",
+  "webManifestUrl": "https://xsa-dev.github.io/tactics-arena-worlds/manifest.json",
+  "appVersionName": "0.1.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./tactics-arena.keystore",
+    "alias": "tactics-arena"
+  },
+  "generatorApp": "solana-mobile-webshell"
+}

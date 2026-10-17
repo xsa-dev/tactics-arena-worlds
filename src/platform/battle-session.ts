@@ -1,10 +1,14 @@
 import { dispatch } from "../core/engine";
 import { createBattle } from "../core/scenario";
+import { decisionStateFingerprint } from "../core/survivor-autoplay";
 import type { BattleCommand, BattleState, CommandResult } from "../core/types";
 import type { Language } from "../localization";
 import type { JsonValue, PlatformService, SessionMetadata } from "./index";
 import type { AnalyticsEvent } from "./index";
 import type { ReleaseProfile } from "../release/config";
+import type { SurvivorControlMode } from "../survivor/policy";
+
+export type SessionControlMode = SurvivorControlMode | "hybrid";
 
 export interface AnalyticsContext {
   sessionId: string;
@@ -27,6 +31,11 @@ export type ObservationState =
 
 export class BattleSession {
   state: BattleState;
+  readonly initialStateFingerprint: string;
+  private readonly commands: BattleCommand[] = [];
+  private activeControlMode: SurvivorControlMode;
+  private readonly modesUsed = new Set<SurvivorControlMode>();
+  private modeSwitchedAfterCommand = false;
   private started = false;
   private loaded = false;
   private firstAction = false;
@@ -58,8 +67,32 @@ export class BattleSession {
     private readonly context: AnalyticsContext,
     battleId: string,
     private readonly now: () => number = () => performance.now(),
+    initialControlMode: SurvivorControlMode = "human",
   ) {
     this.state = createBattle(battleId);
+    this.initialStateFingerprint = decisionStateFingerprint(this.state);
+    this.activeControlMode = initialControlMode;
+  }
+
+  get acceptedCommands(): readonly BattleCommand[] {
+    return this.commands;
+  }
+
+  get controlMode(): SessionControlMode {
+    if (this.modesUsed.size > 1 || this.modeSwitchedAfterCommand)
+      return "hybrid";
+    if (this.modesUsed.size === 1) return [...this.modesUsed][0]!;
+    return this.activeControlMode;
+  }
+
+  setControlMode(mode: SurvivorControlMode): void {
+    if (mode !== this.activeControlMode && this.commands.length > 0)
+      this.modeSwitchedAfterCommand = true;
+    this.activeControlMode = mode;
+  }
+
+  setLocale(locale: Language): void {
+    this.context.locale = locale;
   }
 
   private emit(name: string, extra: Record<string, JsonValue> = {}): void {
@@ -114,7 +147,10 @@ export class BattleSession {
     });
   }
 
-  execute(command: BattleCommand): CommandResult {
+  execute(
+    command: BattleCommand,
+    sourceMode: SurvivorControlMode = this.activeControlMode,
+  ): CommandResult {
     const result = dispatch(this.state, command);
     if (!result.accepted) {
       this.invalidActionCount += 1;
@@ -124,6 +160,10 @@ export class BattleSession {
       });
       return result;
     }
+    this.commands.push(structuredClone(command));
+    this.modesUsed.add(sourceMode);
+    if (sourceMode !== this.activeControlMode)
+      this.modeSwitchedAfterCommand = true;
     this.state = result.state;
     if (!this.firstAction) {
       this.firstAction = true;

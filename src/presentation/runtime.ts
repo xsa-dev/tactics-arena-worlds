@@ -96,9 +96,12 @@ export class GameRuntime {
   private pendingFinal: BattleState | null = null;
   private lastPresentedAt = 0;
   private readonly listeners = new Set<() => void>();
+  private readonly activeBlockers = new Set<
+    "focus" | "visibility" | "mwa_intent"
+  >();
   private rulesOpen = false;
   private readonly preferences = new ReleasePreferences(localStorage);
-  private readonly survivorMode: SurvivorControlMode;
+  private survivorMode: SurvivorControlMode;
   private readonly survivorPolicy: SurvivorPolicy;
   private readonly maxActionsPerPhase: number;
   readonly presentationClock: PresentationClock;
@@ -110,12 +113,11 @@ export class GameRuntime {
 
   constructor(
     public readonly platform: PlatformService,
-    public readonly language: Language,
+    public language: Language,
     context: AnalyticsContext,
     _dependencies?: BootstrapDependencies,
     options: GameRuntimeOptions = {},
   ) {
-    this.observations = new ObservationRegistry(platform, context);
     const survivor = {
       ...defaultSurvivorConfig,
       ...options.survivor,
@@ -125,17 +127,28 @@ export class GameRuntime {
         defaultSurvivorConfig.mode,
     };
     this.survivorMode = survivor.mode;
+    const savedLocale =
+      context.releaseProfile === "solana-mobile"
+        ? this.preferences.getLocale()
+        : null;
+    if (savedLocale) this.language = savedLocale;
+    this.observations = new ObservationRegistry(
+      platform,
+      { ...context, locale: this.language },
+      undefined,
+      undefined,
+      this.survivorMode,
+    );
     this.maxActionsPerPhase = Math.max(
       1,
       Math.floor(survivor.maxActionsPerPhase),
     );
     this.presentationClock = new PresentationClock(options.autoplaySpeed ?? 1);
+    const hasProxyUrl = Boolean(survivor.proxyUrl?.trim());
     const primary =
       _dependencies?.survivorPolicy ??
       survivor.policy ??
-      (survivor.mode === "openjev"
-        ? new OpenJevSurvivorPolicy(openJevConfig(survivor))
-        : null);
+      (hasProxyUrl ? new OpenJevSurvivorPolicy(openJevConfig(survivor)) : null);
     this.survivorPolicy = new ResilientSurvivorPolicy(
       primary,
       new DeterministicSurvivorPolicy(),
@@ -198,6 +211,29 @@ export class GameRuntime {
   get autoplayActive(): boolean {
     return this.survivorMode === "openjev";
   }
+  get controlMode(): SurvivorControlMode {
+    return this.survivorMode;
+  }
+  setControlMode(mode: SurvivorControlMode): void {
+    if (mode === this.survivorMode) return;
+    this.cancelAutoplay();
+    this.survivorMode = mode;
+    this.selectedId = null;
+    this.actionMode = "move";
+    this.feedback = "";
+    this.observations.setControlMode(mode);
+    this.notify();
+  }
+  setLanguage(language: Language): void {
+    if (language === this.language) {
+      this.preferences.setLocale(language);
+      return;
+    }
+    this.language = language;
+    this.preferences.setLocale(language);
+    this.observations.setLocale(language);
+    this.notify();
+  }
   get presentationIdle(): boolean {
     return (
       this.lifecycle.pendingCount === 0 &&
@@ -233,10 +269,19 @@ export class GameRuntime {
     this.notify();
   }
 
-  setLifecycleBlocker(source: "focus" | "visibility", blocked: boolean): void {
-    if (blocked) this.cancelAutoplay();
+  setLifecycleBlocker(
+    source: "focus" | "visibility" | "mwa_intent",
+    blocked: boolean,
+  ): void {
+    if (blocked) {
+      this.activeBlockers.add(source);
+      this.cancelAutoplay();
+    } else {
+      this.activeBlockers.delete(source);
+    }
     this.lifecycle.setPaused(source, blocked);
     this.gameplay.setBlocker(source, blocked);
+    this.notify();
   }
 
   setMode(mode: ActionMode): void {
@@ -310,9 +355,12 @@ export class GameRuntime {
     if (this.inputEnabled) this.resolve({ type: "end-player-phase" });
   }
 
-  private resolve(command: BattleCommand): void {
+  private resolve(
+    command: BattleCommand,
+    sourceMode: SurvivorControlMode = this.survivorMode,
+  ): void {
     const before = structuredClone(this.displayState);
-    const result = this.session.execute(command);
+    const result = this.session.execute(command, sourceMode);
     if (!result.accepted) {
       this.feedback = t(
         this.language,
@@ -390,7 +438,7 @@ export class GameRuntime {
             : (current.candidates.find(
                 ({ id }) => id === decision.candidateId,
               ) ?? deterministicCandidate(current.candidates));
-        if (candidate) this.resolve(candidate.command);
+        if (candidate) this.resolve(candidate.command, "openjev");
       })
       .catch(() => undefined)
       .finally(() => {
@@ -504,10 +552,15 @@ export class GameRuntime {
     this.observations.replay();
     this.lifecycle = this.newLifecycle();
     this.lifecycle.setPaused("portrait", this.portrait);
+    for (const blocker of this.activeBlockers)
+      this.lifecycle.setPaused(blocker, true);
     this.gameplay.beginReplay();
     this.displayState = structuredClone(this.session.state);
+    this.pendingFinal = null;
     this.selectedId = null;
     this.actionMode = "move";
+    this.autoplayDecisions = 0;
+    this.nextAutoplayAt = 0;
     this.locked = false;
     this.feedback = "";
     this.notify();

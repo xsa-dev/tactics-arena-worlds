@@ -6,7 +6,8 @@ type InternalBlocker =
   | "ad"
   | "focus"
   | "visibility"
-  | "portrait";
+  | "portrait"
+  | "mwa_intent";
 
 interface GameplayOwnership {
   startGameplay(): void;

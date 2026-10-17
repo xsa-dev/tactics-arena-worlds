@@ -35,7 +35,7 @@ export interface ReleaseManifest {
   analyticsSchemaVersion: number;
   adPolicy: ReleaseConfig["adPolicy"];
   publicationEligible: boolean;
-  sdkEnabled: true;
+  sdkEnabled: boolean;
   languages: readonly ["en", "ru"];
   platforms: readonly ["desktop", "mobile"];
   orientation: "landscape";
@@ -80,7 +80,7 @@ export function createReleaseManifest(
     analyticsSchemaVersion: config.analyticsSchemaVersion,
     adPolicy: config.adPolicy,
     publicationEligible: config.publicationEligible,
-    sdkEnabled: true,
+    sdkEnabled: config.sdkEnabled,
     languages: ["en", "ru"],
     platforms: ["desktop", "mobile"],
     orientation: "landscape",

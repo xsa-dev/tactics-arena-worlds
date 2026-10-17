@@ -17,8 +17,26 @@ describe("release profiles and manifest", () => {
     });
     expect(createReleaseConfig("catalog-release")).toMatchObject({
       profile: "catalog-release",
+      sdkEnabled: true,
       adPolicy: "post_battle_fullscreen",
       publicationEligible: true,
+    });
+    expect(createReleaseConfig("solana-mobile")).toMatchObject({
+      profile: "solana-mobile",
+      sdkEnabled: false,
+      adPolicy: "disabled_for_study",
+      publicationEligible: true,
+      survivor: {
+        mode: "human",
+        proxyUrl: "",
+      },
+      solanaMobile: {
+        appUrl: "https://xsa-dev.github.io/tactics-arena-worlds/",
+        applicationId: "dev.xsa.tacticsarena",
+        chains: ["solana:mainnet"],
+        rpcUrl: "https://api.mainnet-beta.solana.com",
+        allowControlModeSwitch: true,
+      },
     });
     expect(() => createReleaseConfig(undefined)).toThrow(/profile/);
     expect(() => createReleaseConfig("preview")).toThrow(/profile/);
@@ -61,6 +79,15 @@ describe("release profiles and manifest", () => {
       evidence: input.evidence,
     });
     expect(validateReleaseManifest(first)).toEqual([]);
+    expect(
+      createReleaseManifest({
+        ...input,
+        config: createReleaseConfig("solana-mobile"),
+      }),
+    ).toMatchObject({
+      profile: "solana-mobile",
+      sdkEnabled: false,
+    });
     expect(validateReleaseManifest({ ...first, sourceCommit: "" })).toContain(
       "sourceCommit",
     );

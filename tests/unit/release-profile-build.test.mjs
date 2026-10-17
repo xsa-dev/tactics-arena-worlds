@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 describe("canonical release profile propagation", () => {
-  it.each(["study-draft", "catalog-release"])(
+  it.each(["study-draft", "catalog-release", "solana-mobile"])(
     "embeds %s in real Vite bytes and the matching manifest",
     async (profile) => {
       const root = await mkdtemp(join(tmpdir(), "tactics-profile-build-test-"));
@@ -46,10 +46,19 @@ describe("canonical release profile propagation", () => {
       );
       expect(javascript).toContain(`tactics-release-profile:${profile}`);
       expect(manifest.profile).toBe(profile);
-      expect(javascript).not.toContain(
-        `tactics-release-profile:${
-          profile === "study-draft" ? "catalog-release" : "study-draft"
-        }`,
+      expect(manifest.sdkEnabled).toBe(profile !== "solana-mobile");
+      const indexHtml = await readFile(join(dist, "index.html"), "utf8");
+      expect(indexHtml).toContain("manifest.json");
+      expect(indexHtml).toContain("privacy.html");
+      const webManifest = JSON.parse(
+        await readFile(join(dist, "manifest.json"), "utf8"),
+      );
+      expect(webManifest).toMatchObject({
+        orientation: "landscape",
+        display: "standalone",
+      });
+      expect(await readFile(join(dist, "privacy.html"), "utf8")).toContain(
+        "Privacy Policy",
       );
     },
     30_000,

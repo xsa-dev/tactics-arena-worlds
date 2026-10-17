@@ -59,21 +59,73 @@ body {
 #feedback:empty {
   display: none;
 }
-.ai-status,
-.ai-speed {
+.ai-status {
   margin-top: 4px;
   padding: 3px 5px;
   background: rgba(7, 10, 11, 0.82);
   border-radius: 4px;
 }
+.ai-status:empty {
+  display: none;
+}
+.top-controls {
+  position: absolute;
+  z-index: 9;
+  top: max(4px, env(safe-area-inset-top));
+  right: max(6px, env(safe-area-inset-right));
+  height: 44px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.top-controls.hidden {
+  display: none;
+}
+.top-controls button {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 4px 8px;
+}
+.seeker-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 2px 6px;
+  border: 1px solid #5fd8ff;
+  border-radius: 4px;
+  background: rgba(20, 62, 78, 0.92);
+  color: #bceffc;
+  font-size: 12px;
+  font-weight: 700;
+}
+.seeker-badge.hidden {
+  display: none;
+}
+.ai-speed {
+  position: absolute;
+  z-index: 8;
+  left: max(6px, env(safe-area-inset-left));
+  bottom: max(0px, env(safe-area-inset-bottom));
+  height: 44px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 6px;
+  background: rgba(7, 10, 11, 0.82);
+  border-radius: 6px;
+  pointer-events: auto;
+}
 .ai-speed.hidden {
   display: none;
 }
+.ai-speed span {
+  font-size: 13px;
+  margin-right: 2px;
+}
 .ai-speed button {
-  min-width: 42px;
-  min-height: 32px;
-  margin-left: 3px;
-  padding: 2px 5px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px 6px;
 }
 #game-controls {
   position: absolute;
@@ -107,6 +159,9 @@ button:disabled {
   opacity: 0.42;
   filter: grayscale(1);
   cursor: default;
+}
+button.hidden {
+  display: none;
 }
 button.icon-button {
   min-width: 44px;
@@ -166,6 +221,15 @@ button.icon-button {
   float: none;
   margin: 4px;
 }
+.proof-status {
+  margin: 6px 0;
+  color: #7fdef8;
+  font-size: 14px;
+  font-weight: 700;
+}
+.proof-status.hidden {
+  display: none;
+}
 .rotate {
   z-index: 50;
   text-align: center;
@@ -187,6 +251,26 @@ button.icon-button {
     bottom: 48px;
     width: 42vw;
     font-size: 14px;
+  }
+  .top-controls {
+    gap: 2px;
+  }
+  .top-controls button {
+    min-width: 44px;
+    padding: 2px 5px;
+    font-size: 12px;
+  }
+  .ai-speed {
+    padding: 0 2px;
+    gap: 2px;
+  }
+  .ai-speed span {
+    display: none;
+  }
+  .ai-speed button {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 0 0 44px;
   }
   #game-controls {
     left: 32%;

@@ -5,4 +5,5 @@ playwright-report
 openspec
 docs/research
 artifacts/screenshots
+artifacts/releases
 package-lock.json

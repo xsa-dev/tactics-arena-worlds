@@ -28,11 +28,22 @@ import type {
 } from "./platform/battle-session";
 import { selectTesterIdentity } from "./platform/operator";
 import { createBootstrapDependencies } from "./bootstrap";
+import type {
+  ProofVerificationResult,
+  SeekerVerifier,
+  SignedBattleProofV1,
+  WalletAdapterLike,
+} from "./solana/types";
+import type { SolanaWalletCoordinator } from "./solana/wallet-coordinator";
 
 declare global {
   interface Window {
     YaGames?: { init(): Promise<YandexSdk> };
     __PHASER_GAME__?: Phaser.Game;
+    __TACTICS_SOLANA_MOCK__?: {
+      walletAdapter?: WalletAdapterLike;
+      seekerVerifier?: SeekerVerifier;
+    };
     __TACTICS__: {
       snapshot(): ReturnType<
         typeof structuredClone<GameRuntime["session"]["state"]>
@@ -41,6 +52,14 @@ declare global {
       readonly interactiveReady: boolean;
       analytics(): ReturnType<GameRuntime["observations"]["analytics"]>;
       provideHelp(type: HelpType, reason: HelpReason): void;
+      setControlMode(mode: "human" | "openjev"): void;
+      setLanguage(language: Language): void;
+      connectWallet?(): Promise<string>;
+      signLastBattleProof?(): Promise<SignedBattleProofV1>;
+      verifyProof?(
+        proof?: SignedBattleProofV1,
+      ): Promise<ProofVerificationResult>;
+      lastSignedProof?(): SignedBattleProofV1 | null;
     };
     __TACTICS_OPERATOR__: {
       currentIds(): { sessionId: string; battleId: string };
@@ -89,6 +108,7 @@ async function start(): Promise<void> {
   const sdkLoader = createSdkLoader({
     hostname: location.hostname,
     automated: navigator.webdriver,
+    sdkEnabled: ACTIVE_RELEASE_CONFIG.sdkEnabled,
     loadScript: async (path) => {
       if (window.YaGames) return;
       await new Promise<void>((resolve, reject) => {
@@ -114,6 +134,7 @@ async function start(): Promise<void> {
       navigator.language,
       releaseRuntime,
     ),
+    ACTIVE_RELEASE_CONFIG.profile,
   );
   const language = selectRuntimeLanguage(
     platform,
@@ -141,6 +162,14 @@ async function start(): Promise<void> {
   };
   const dependencies = createBootstrapDependencies(
     ACTIVE_RELEASE_CONFIG.survivor.mode,
+    {
+      ...(window.__TACTICS_SOLANA_MOCK__?.walletAdapter
+        ? { walletAdapter: window.__TACTICS_SOLANA_MOCK__.walletAdapter }
+        : {}),
+      ...(window.__TACTICS_SOLANA_MOCK__?.seekerVerifier
+        ? { seekerVerifier: window.__TACTICS_SOLANA_MOCK__.seekerVerifier }
+        : {}),
+    },
   );
   const runtime = new GameRuntime(platform, language, context, dependencies, {
     survivor: ACTIVE_RELEASE_CONFIG.survivor,
@@ -171,6 +200,14 @@ async function start(): Promise<void> {
   const attack = $<HTMLButtonElement>("attack-action");
   const ability = $<HTMLButtonElement>("ability-action");
   const endTurn = $<HTMLButtonElement>("end-turn");
+  const topControls = $("top-controls");
+  const modeToggle = $<HTMLButtonElement>("mode-toggle");
+  const localeToggle = $<HTMLButtonElement>("locale-toggle");
+  const walletButton = $<HTMLButtonElement>("wallet-button");
+  const seekerBadge = $("seeker-badge");
+  const signProofButton = $<HTMLButtonElement>("sign-proof");
+  const verifyProofButton = $<HTMLButtonElement>("verify-proof");
+  const proofStatus = $("result-proof-status");
   const aiStatus = $("ai-status");
   const aiSpeed = $("ai-speed");
   const aiSpeedLabel = $("ai-speed-label");
@@ -179,42 +216,68 @@ async function start(): Promise<void> {
     [$("speed-2"), 2],
     [$("speed-4"), 4],
   ] as const;
-  move.textContent = t(language, "action.move");
-  attack.textContent = t(language, "action.attack");
-  endTurn.textContent = t(language, "action.endTurn");
-  const isAi = ACTIVE_RELEASE_CONFIG.survivor.mode === "openjev";
-  aiStatus.textContent = isAi ? t(language, "ai.status") : "";
-  aiSpeed.classList.toggle("hidden", !isAi);
-  aiSpeedLabel.textContent = t(language, "ai.speed");
+  const isSolanaMobile = ACTIVE_RELEASE_CONFIG.profile === "solana-mobile";
+  topControls.classList.toggle("hidden", !isSolanaMobile);
+  walletButton.classList.toggle("hidden", !isSolanaMobile);
+  let walletCoordinator: SolanaWalletCoordinator | null = null;
+  let lastCachedBattleId = "";
+
+  if (isSolanaMobile) {
+    const solanaModule = await import("./solana/wallet-coordinator");
+    void solanaModule
+      .registerSolanaMobileWalletAdapter(
+        ACTIVE_RELEASE_CONFIG.solanaMobile.appUrl,
+        sessionStorage,
+      )
+      .catch(() => undefined);
+    walletCoordinator = new solanaModule.SolanaWalletCoordinator({
+      sessionStorage,
+      setBlocker: (source, blocked) =>
+        runtime.setLifecycleBlocker(source, blocked),
+      emitAnalytics: (name, properties) =>
+        platform.emit({
+          name,
+          atMs: performance.now(),
+          properties: {
+            ...context,
+            locale: runtime.language,
+            battleId: runtime.session.state.battleId,
+            ...properties,
+          },
+        }),
+      ...(dependencies.walletAdapter
+        ? { walletAdapter: dependencies.walletAdapter }
+        : {}),
+      ...(dependencies.seekerVerifier
+        ? { seekerVerifier: dependencies.seekerVerifier }
+        : {}),
+      rpcUrl: ACTIVE_RELEASE_CONFIG.solanaMobile.rpcUrl,
+    });
+  }
+
   for (const [button, value] of speedButtons) {
-    button.textContent = t(
-      language,
-      `ai.speed.${value}` as Parameters<typeof t>[1],
-    );
-    button.setAttribute("aria-label", `${t(language, "ai.speed")} ${value}×`);
     button.addEventListener("click", () => {
       runtime.presentationClock.multiplier = value;
       renderSpeed();
     });
   }
-  $("rules").setAttribute("aria-label", t(language, "action.rules"));
-  $("onboarding-title").textContent = t(language, "onboarding.title");
-  $("onboarding-list").innerHTML = [1, 2, 3, 4, 5, 6]
-    .map((index) => {
-      const key = isAi ? `onboarding.ai.${index}` : `onboarding.${index}`;
-      const copy = t(language, key as Parameters<typeof t>[1]);
-      if (index !== 5) return `<li>${copy}</li>`;
-      return `<li class="ability-briefing">${copy
-        .split("; ")
-        .map((rule) => `<span class="ability-rule">${rule}</span>`)
-        .join("")}</li>`;
-    })
-    .join("");
-  $("onboarding-dismiss").textContent = t(language, "onboarding.dismiss");
-  $("replay").textContent = t(language, "action.replay");
-  $("export").textContent = t(language, "action.export");
-  $("rotate-title").textContent = t(language, "rotate.title");
-  $("rotate-body").textContent = t(language, "rotate.body");
+  modeToggle.addEventListener("click", () => {
+    runtime.setControlMode(
+      runtime.controlMode === "openjev" ? "human" : "openjev",
+    );
+  });
+  localeToggle.addEventListener("click", () => {
+    runtime.setLanguage(runtime.language === "en" ? "ru" : "en");
+  });
+  walletButton.addEventListener("click", () => {
+    void walletCoordinator?.connect().catch(() => undefined);
+  });
+  signProofButton.addEventListener("click", () => {
+    void walletCoordinator?.signLastBattleProof().catch(() => undefined);
+  });
+  verifyProofButton.addEventListener("click", () => {
+    void walletCoordinator?.verifyProof().catch(() => undefined);
+  });
 
   move.addEventListener("click", () => runtime.setMode("move"));
   attack.addEventListener("click", () => runtime.setMode("attack"));
@@ -224,36 +287,140 @@ async function start(): Promise<void> {
   $("onboarding-dismiss").addEventListener("click", () =>
     runtime.dismissOnboarding(),
   );
-  $("replay").addEventListener("click", () => runtime.replay());
+  $("replay").addEventListener("click", () => {
+    walletCoordinator?.clearCachedBattle();
+    runtime.replay();
+  });
   $("export").addEventListener("click", () => runtime.exportJson());
   document.addEventListener("contextmenu", (event) => event.preventDefault());
   runtime.markReady("dom");
 
   const renderDom = () => {
+    const lang = runtime.language;
+    const isAi = runtime.controlMode === "openjev";
+    document.documentElement.lang = lang;
+    document.title = t(lang, "game.title");
+    move.textContent = t(lang, "action.move");
+    attack.textContent = t(lang, "action.attack");
+    endTurn.textContent = t(lang, "action.endTurn");
+    aiStatus.textContent = isAi ? t(lang, "ai.status") : "";
+    aiSpeed.classList.toggle("hidden", !isAi);
+    aiSpeedLabel.textContent = t(lang, "ai.speed");
+    for (const [button, value] of speedButtons) {
+      button.textContent = t(
+        lang,
+        `ai.speed.${value}` as Parameters<typeof t>[1],
+      );
+      button.setAttribute("aria-label", `${t(lang, "ai.speed")} ${value}×`);
+    }
+    modeToggle.textContent = t(lang, isAi ? "mode.ai" : "mode.human");
+    modeToggle.classList.toggle("active", isAi);
+    localeToggle.textContent = t(lang, "locale.switch");
+    const connectedAddress = walletCoordinator?.walletAddress ?? null;
+    if (connectedAddress) {
+      walletButton.dataset.connected = "true";
+      walletButton.textContent = `${t(lang, "wallet.connected")}: ${connectedAddress.slice(0, 4)}…${connectedAddress.slice(-4)}`;
+    } else {
+      delete walletButton.dataset.connected;
+      walletButton.textContent = t(lang, "wallet.connect");
+    }
+    const seekerVerified = Boolean(walletCoordinator?.seekerVerified);
+    seekerBadge.textContent = t(lang, "wallet.seekerVerified");
+    seekerBadge.classList.toggle("hidden", !isSolanaMobile || !seekerVerified);
+    $("rules").setAttribute("aria-label", t(lang, "action.rules"));
+    $("onboarding-title").textContent = t(lang, "onboarding.title");
+    $("onboarding-list").innerHTML = [1, 2, 3, 4, 5, 6]
+      .map((index) => {
+        const key = isAi ? `onboarding.ai.${index}` : `onboarding.${index}`;
+        const copy = t(lang, key as Parameters<typeof t>[1]);
+        if (index !== 5) return `<li>${copy}</li>`;
+        return `<li class="ability-briefing">${copy
+          .split("; ")
+          .map((rule) => `<span class="ability-rule">${rule}</span>`)
+          .join("")}</li>`;
+      })
+      .join("");
+    $("onboarding-dismiss").textContent = t(lang, "onboarding.dismiss");
+    $("replay").textContent = t(lang, "action.replay");
+    $("export").textContent = t(lang, "action.export");
+    $("rotate-title").textContent = t(lang, "rotate.title");
+    $("rotate-body").textContent = t(lang, "rotate.body");
+
     const readinessFailure = runtime.readiness.failure;
     if (readinessFailure)
-      showStartupError(language, readinessFailure.messageKey as UiKey);
+      showStartupError(lang, readinessFailure.messageKey as UiKey);
     onboarding.classList.toggle("hidden", !runtime.onboardingOpen);
-    const terminal = runtime.displayState.status !== "active";
+    if (
+      walletCoordinator &&
+      runtime.session.state.status !== "active" &&
+      lastCachedBattleId !== runtime.session.state.battleId
+    ) {
+      lastCachedBattleId = runtime.session.state.battleId;
+      walletCoordinator.cacheCompletedBattle(runtime.session);
+    }
+    const hasCachedProof =
+      isSolanaMobile && Boolean(walletCoordinator?.hasUnsignedProof);
+    const terminal =
+      runtime.displayState.status !== "active" ||
+      (hasCachedProof &&
+        !runtime.onboardingOpen &&
+        runtime.session.acceptedCommands.length === 0);
     result.classList.toggle("hidden", !terminal);
     if (terminal) {
+      const cachedUnsigned = walletCoordinator?.readCachedUnsignedProof();
+      const resultStatus =
+        runtime.displayState.status !== "active"
+          ? runtime.displayState.status
+          : (cachedUnsigned?.payload.result ?? "victory");
+      const resultRounds =
+        runtime.displayState.status !== "active"
+          ? runtime.displayState.round
+          : (cachedUnsigned?.payload.rounds ?? 1);
+      const resultDurationMs =
+        runtime.displayState.status !== "active"
+          ? runtime.session.activeDuration()
+          : (cachedUnsigned?.payload.activeDurationMs ?? 0);
       $("result-title").textContent = t(
-        language,
-        runtime.displayState.status === "victory"
-          ? "result.victory"
-          : "result.defeat",
+        lang,
+        resultStatus === "victory" ? "result.victory" : "result.defeat",
       );
       $("result-stats").textContent =
-        `${t(language, "result.rounds")}: ${runtime.displayState.round} · ${t(language, "result.duration")}: ${Math.ceil(runtime.session.activeDuration() / 1000)}s`;
+        `${t(lang, "result.rounds")}: ${resultRounds} · ${t(lang, "result.duration")}: ${Math.ceil(resultDurationMs / 1000)}s`;
+    }
+    signProofButton.classList.toggle("hidden", !isSolanaMobile || !terminal);
+    const signedProof = walletCoordinator?.lastSignedProof ?? null;
+    signProofButton.textContent = t(
+      lang,
+      signedProof ? "proof.signed" : "proof.sign",
+    );
+    verifyProofButton.classList.toggle(
+      "hidden",
+      !isSolanaMobile || !signedProof,
+    );
+    verifyProofButton.textContent = t(lang, "proof.verify");
+    const verification = walletCoordinator?.lastVerificationResult ?? null;
+    if (isSolanaMobile && (signedProof || verification)) {
+      proofStatus.classList.remove("hidden");
+      const statusParts: string[] = [];
+      if (seekerVerified) statusParts.push(t(lang, "wallet.seekerVerified"));
+      if (verification)
+        statusParts.push(
+          t(lang, verification.valid ? "proof.verified" : "proof.invalid"),
+        );
+      else if (signedProof) statusParts.push(t(lang, "proof.signed"));
+      proofStatus.textContent = statusParts.join(" · ");
+    } else {
+      proofStatus.classList.add("hidden");
+      proofStatus.textContent = "";
     }
     const selected = runtime.selected;
     $("selected-status").textContent = selected
-      ? `${t(language, selected.nameKey as Parameters<typeof t>[1])} · ${selected.hp}/${selected.maxHp} ${t(language, "hp")} · ${selected.ap} ${t(language, "ap")}`
+      ? `${t(lang, selected.nameKey as Parameters<typeof t>[1])} · ${selected.hp}/${selected.maxHp} ${t(lang, "hp")} · ${selected.ap} ${t(lang, "ap")}`
       : "";
     $("feedback").textContent = runtime.feedback;
     ability.textContent = selected?.ability
-      ? t(language, `action.${selected.ability}` as Parameters<typeof t>[1])
-      : t(language, "action.ability");
+      ? t(lang, `action.${selected.ability}` as Parameters<typeof t>[1])
+      : t(lang, "action.ability");
     const disabled = !runtime.inputEnabled || !selected;
     move.disabled = disabled;
     attack.disabled = disabled;
@@ -270,6 +437,7 @@ async function start(): Promise<void> {
       );
   };
   runtime.subscribe(renderDom);
+  walletCoordinator?.subscribe(renderDom);
   const renderSpeed = () => {
     for (const [button, value] of speedButtons)
       button.classList.toggle(
@@ -319,6 +487,16 @@ async function start(): Promise<void> {
         type,
         reason,
       ),
+    setControlMode: (mode) => runtime.setControlMode(mode),
+    setLanguage: (lang) => runtime.setLanguage(lang),
+    ...(walletCoordinator
+      ? {
+          connectWallet: () => walletCoordinator.connect(),
+          signLastBattleProof: () => walletCoordinator.signLastBattleProof(),
+          verifyProof: (proof) => walletCoordinator.verifyProof(proof),
+          lastSignedProof: () => walletCoordinator.lastSignedProof,
+        }
+      : {}),
   };
   window.__TACTICS_OPERATOR__ = {
     currentIds: () => runtime.observations.currentIds(),

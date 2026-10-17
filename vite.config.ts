@@ -5,9 +5,14 @@ export default defineConfig(({ mode }) => {
   const releaseProfile =
     loadEnv(mode, ".", "").RELEASE_PROFILE ?? "study-draft";
   if (
-    !(["study-draft", "catalog-release", "ai-exhibition"] as const).includes(
-      releaseProfile as never,
-    )
+    !(
+      [
+        "study-draft",
+        "catalog-release",
+        "ai-exhibition",
+        "solana-mobile",
+      ] as const
+    ).includes(releaseProfile as never)
   )
     throw new Error(`Unknown RELEASE_PROFILE: ${releaseProfile}`);
   return {

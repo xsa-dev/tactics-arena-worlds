@@ -31,6 +31,12 @@ import { chromium } from "@playwright/test";
 
 const LIMIT = 100 * 1024 * 1024;
 const ALLOWED_ABSOLUTE_HOSTS = new Set();
+const SOLANA_MOBILE_ALLOWED_HOSTS = new Set([
+  "xsa-dev.github.io",
+  "api.mainnet-beta.solana.com",
+  "solanamobile.com",
+  "localhost",
+]);
 const RELEASE_METADATA = JSON.parse(
   await readFile(new URL("../release-metadata.json", import.meta.url), "utf8"),
 );
@@ -133,8 +139,12 @@ function networkHosts(path, content) {
   return hosts;
 }
 
-export function validateArchiveEntries(entries) {
+export function validateArchiveEntries(entries, options = {}) {
   const errors = [];
+  const allowedHosts =
+    options.profile === "solana-mobile"
+      ? SOLANA_MOBILE_ALLOWED_HOSTS
+      : ALLOWED_ABSOLUTE_HOSTS;
   const indexes = entries.filter(({ path }) => basename(path) === "index.html");
   const rootIndexes = entries.filter(({ path }) => path === "index.html");
   if (indexes.length === 0) errors.push("missing root index.html");
@@ -151,7 +161,7 @@ export function validateArchiveEntries(entries) {
     const content = entry.content ?? "";
     if (/\.(?:html|css|m?js)$/i.test(entry.path))
       for (const host of networkHosts(entry.path, content)) {
-        if (!ALLOWED_ABSOLUTE_HOSTS.has(host))
+        if (!allowedHosts.has(host))
           errors.push(`forbidden absolute host: ${host}`);
       }
   }
@@ -293,7 +303,7 @@ export function inspectZipArchive(zipPath) {
 }
 
 export function createReleaseManifestObject(input, archive) {
-  if (!/^(study-draft|catalog-release)$/.test(input.profile))
+  if (!/^(study-draft|catalog-release|solana-mobile)$/.test(input.profile))
     throw new Error(`Unknown release profile: ${input.profile}`);
   if (!/^[0-9a-f]{40}$/i.test(input.sourceCommit))
     throw new Error("Missing or invalid source commit");
@@ -321,7 +331,7 @@ export function createReleaseManifestObject(input, archive) {
     analyticsSchemaVersion: RELEASE_METADATA.analyticsSchemaVersion,
     adPolicy: profileMetadata.adPolicy,
     publicationEligible: profileMetadata.publicationEligible,
-    sdkEnabled: true,
+    sdkEnabled: input.profile !== "solana-mobile",
     languages: RELEASE_METADATA.languages,
     platforms: RELEASE_METADATA.platforms,
     orientation: RELEASE_METADATA.orientation,
@@ -339,8 +349,15 @@ export async function createDeterministicPackage(sourceDir, outputDir, input) {
   const sourceEntries = await walk(sourceDir);
   const entries = [];
   for (const entry of sourceEntries)
-    entries.push({ ...entry, content: await readFile(entry.absolute, "utf8") });
-  const validation = validateArchiveEntries(entries);
+    entries.push({
+      ...entry,
+      content: /\.(?:html|css|m?js|json|webmanifest)$/i.test(entry.path)
+        ? await readFile(entry.absolute, "utf8")
+        : "",
+    });
+  const validation = validateArchiveEntries(entries, {
+    profile: input.profile,
+  });
   if (validation.length) throw new Error(validation.join("\n"));
 
   const releaseDir = resolve(outputDir, input.version);

@@ -1,4 +1,6 @@
 import type { BattleCommand, CommandResult } from "../core/types";
+import type { Language } from "../localization";
+import type { SurvivorControlMode } from "../survivor/policy";
 import type { PlatformService, SessionMetadata } from "./index";
 import {
   BattleSession,
@@ -18,13 +20,16 @@ export function selectTesterIdentity(
 export class ObservationRegistry {
   private readonly sessions = new Map<string, BattleSession>();
   private current: BattleSession;
+  private defaultControlMode: SurvivorControlMode;
 
   constructor(
     private readonly platform: PlatformService,
     private readonly baseContext: AnalyticsContext,
     private readonly now: () => number = () => performance.now(),
     private readonly createId: () => string = () => crypto.randomUUID(),
+    initialControlMode: SurvivorControlMode = "human",
   ) {
+    this.defaultControlMode = initialControlMode;
     this.current = this.createObservation();
   }
 
@@ -36,9 +41,20 @@ export class ObservationRegistry {
       { ...this.baseContext, sessionId },
       battleId,
       this.now,
+      this.defaultControlMode,
     );
     this.sessions.set(sessionId, session);
     return session;
+  }
+
+  setControlMode(mode: SurvivorControlMode): void {
+    this.defaultControlMode = mode;
+    this.current.setControlMode(mode);
+  }
+
+  setLocale(locale: Language): void {
+    this.baseContext.locale = locale;
+    this.current.setLocale(locale);
   }
 
   private get(sessionId: string): BattleSession {
