@@ -21,6 +21,11 @@ import {
   verifyChecksums,
   validateArchiveEntries,
 } from "../../scripts/release-tools.mjs";
+import {
+  ensureAndroidLocalProperties,
+  loadWebshellManifest,
+  webshellCliArguments,
+} from "../../scripts/build-solana-webshell.mjs";
 
 const testRoots = [];
 const makeTestRoot = async (prefix) => {
@@ -544,5 +549,24 @@ describe("release archive tooling", () => {
     expect(
       execFileSync("unzip", ["-Z1", second.zip], { encoding: "utf8" }),
     ).not.toContain("removed.js");
+  });
+
+  it("writes webshell local.properties with sdk.dir and builds deterministic CLI args", async () => {
+    const root = await makeTestRoot("tactics-webshell-local-props-");
+    const manifest = await loadWebshellManifest();
+    const localPropsPath = await ensureAndroidLocalProperties(
+      root,
+      "/Users/example/Library/Android/sdk",
+    );
+    expect(await readFile(localPropsPath, "utf8")).toBe(
+      "sdk.dir=/Users/example/Library/Android/sdk\n",
+    );
+    const args = webshellCliArguments(
+      manifest,
+      "webshell/android",
+      "/abs/tactics-arena.keystore",
+    );
+    expect(args.init).toContain("/abs/tactics-arena.keystore");
+    expect(args.build).toContain("/abs/tactics-arena.keystore");
   });
 });

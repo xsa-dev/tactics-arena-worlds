@@ -79,10 +79,10 @@ keytool -list -v \
 
 ### Шаг 1.3 — Сборка и проверка подписанного APK (`npm run release:solana-webshell`)
 
-Скрипт `scripts/build-solana-webshell.mjs` читает `webshell/twa-manifest.json` и последовательно вызывает:
+Скрипт `scripts/build-solana-webshell.mjs` читает `webshell/twa-manifest.json`, автоматически находит ваш Android SDK (`/Users/alxy/Library/Android/sdk`), прописывает `webshell/android/local.properties` (`sdk.dir=...`) и собирает подписанный APK:
 
-1. `npx solana-mobile@latest webshell init webshell/android ...` — генерирует Android WebView-оболочку вокруг `https://xsa-dev.github.io/tactics-arena-worlds/manifest.json` с `applicationId: "dev.xsa.tacticsarena"`.
-2. `npx solana-mobile@latest webshell build webshell/android ...` — компилирует и подписывает релизный `.apk` вашим ключом `tactics-arena.keystore`.
+- Если `webshell/android` ещё не инициализирован (или передан флаг `--reinit`), скрипт сначала запускает `solana-mobile webshell init`.
+- Если `webshell/android` уже создан, скрипт пропускает повторный `init`, сохраняет `local.properties` и сразу запускает `solana-mobile webshell build`, подписывая APK вашим корневым ключом `tactics-arena.keystore` (пароль от ключа вводится в терминале при запросе `Keystore password`).
 
 Запустите сборку:
 
